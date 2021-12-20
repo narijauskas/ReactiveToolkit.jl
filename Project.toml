@@ -2,3 +2,17 @@ name = "ReactiveToolkit"
 uuid = "5352d3c8-010c-4f6e-a427-fe5152755be6"
 authors = ["mantas <mantas@case.edu>"]
 version = "0.1.0"
+
+[deps]
+Crayons = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
+
+[compat]
+julia = "1.7" # needs atomic fields & benefits from m:n scheduling
+
+[extras]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test", "SafeTestsets", "BenchmarkTools"]
