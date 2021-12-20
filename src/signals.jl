@@ -23,14 +23,51 @@ Base.getindex(s::AbstractSignal) = getvalue(s)
 
 
 #------------------------------------ simple signal implementation ------------------------------------#
+#TODO: update constructors & docstrings
+#NOTE: constructors may be redesigned
 
 
+"""
+    Signal{T} <: AbstractSignal{T}
+
+The Signal type represents a time-variant quantity of type `T`, which can be safely shared by multiple threads. Stores values in a buffer of `(v,t)` pairs, where `v` is the value and `t` is a timestamp of when the `v` was written.
+"""
 mutable struct Signal{T} <: AbstractSignal{T}
     @atomic v::T
     @atomic t::Nano
     Signal{T}(v0::T) where {T} = new(v0, now())
 end
 #TODO: add a condition
+
+
+
+"""
+    Signal(v0::T)
+
+Create a `Signal{T}` with an initial value of `v0`
+"""
+Signal(v0::T) where {T} = Signal{T}(v0) # gets T from v0
+
+"""
+    Signal{T}(v0)
+    
+Create a `Signal{T}` with an initial value of `v0`, where `v0` is converted to `T`.
+"""
+Signal{T}(v0) where {T} = Signal{T}(convert(T, v0))
+
+"""
+    Signal{T}()
+
+Create a `Signal{T}` with an initial value created by `null(T)`.
+"""
+Signal{T}() where {T} = Signal{T}(zero(T))
+
+
+
+#MAYBE: use null() function as in previous implementations?
+
+
+
 
 """
     setvalue!(s, v)

@@ -1,4 +1,4 @@
-using RectiveToolkit, Test, SafeTestsets
+using ReactiveToolkit, Test, SafeTestsets
 
 @time begin
     @time @safetestset "Time & Frequency" begin include("test_times.jl") end
