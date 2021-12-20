@@ -1,0 +1,4 @@
+name = "ReactiveToolkit"
+uuid = "5352d3c8-010c-4f6e-a427-fe5152755be6"
+authors = ["mantas <mantas@case.edu>"]
+version = "0.1.0"
