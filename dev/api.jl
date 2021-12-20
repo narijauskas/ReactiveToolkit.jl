@@ -27,10 +27,18 @@ end
 # reacts to: ...signals...[active]
 
 
-@after sec begin ex end
-#= becomes
+# y = x^2
+y = map(a->a*a, x)
+# does this return a Signal? MappedSignal? ReactiveTask?
+
+
+after(sec) do
+    ex 
+end
+#= becomes (quick and dirty)
     @async begin
         sleep(sec)
         ex
     end
 =#
+

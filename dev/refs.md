@@ -4,6 +4,7 @@ https://github.com/JuliaGizmos/Reactive.jl
 http://juliagizmos.github.io/Reactive.jl/
 https://tshort.github.io/ReactiveBasics.jl/stable/
 https://github.com/biaslab/Rocket.jl
+https://github.com/TsurHerman/Signals.jl/tree/master/src
 
 
 [Asynchronous Functional Reactive Programming for GUIs](http://people.seas.harvard.edu/~chong/abstracts/CzaplickiC13.html)
