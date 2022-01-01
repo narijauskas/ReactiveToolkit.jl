@@ -49,9 +49,15 @@ z = Signal(Signal(1))
 #------------------------------------ tasks ------------------------------------#
 # what to return?
 # - actual tasks
-# - task wrappers (eg. ReactiveTask/RepeatingTask)
+# - task wrappers (eg. ReactiveTask/RepeatingTask) - useful for overview/debug
 # - other signals? (return type of task?)
 # - nothing
+
+#= kwargs
+    - taskref?
+    - task name?
+    - benchmarking?
+=#
 
 on(s...) do
     # stuff with signals
@@ -61,6 +67,8 @@ every(Hz) do
     # on periodic interval
 end
 
+# for debug/overview:
+# stacktrace(task) or status(task)
 
 #------------------------------------ operators ------------------------------------#
 
@@ -88,11 +96,38 @@ end
 # y = {x | xn != xn-1}
 
 
+#------------------------------------ maybe ------------------------------------#
+
+# bind
+# associate the lifetimes of signals/tasks
+
+# flatten
+# Signal{Signal{T}} -> Signal{T}
+# Array{Signal{T}} -> Signal{Array{T}}
+# Signal{T} -> Signal{T} # (default)
+
+
+# y = sample(Hz, x)
+# ys... = sample(Hz, xs...)
+
+# delay(f, y, xs...)
+# see Reactive.jl source code
+# do f(xs...) after y
+
+
+# after(f, t, xs...)
+after(t) do
+    # f(xs...)
+end
+
 #------------------------------------ useful stuff ------------------------------------#
 
 # tuple of current value and last few terms
 # x -> (x[n], x[n-1])
 
+# overveiw()
+# show system graph
+# show active/failed nodes
 
 #------------------------------------ other ------------------------------------#
 
