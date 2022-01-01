@@ -42,9 +42,18 @@ x[] = 1.0
 y = x[]
 
 # these should throw an error:
+# (at least temporarily?)
 z = Signal(x)
 z = Signal(Signal(1))
 
+# timer signal
+# () -> t
+# notified on interval (taskdaemon? better scheduler?)
+# used as kernels for every()
+
+# tx = Hz(10)
+# notify(tx)
+# kill!(tx)
 
 #------------------------------------ tasks ------------------------------------#
 # what to return?
@@ -106,6 +115,7 @@ end
 # Array{Signal{T}} -> Signal{Array{T}}
 # Signal{T} -> Signal{T} # (default)
 
+# zip(xs)
 
 # y = sample(Hz, x)
 # ys... = sample(Hz, xs...)
