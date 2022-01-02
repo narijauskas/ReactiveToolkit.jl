@@ -68,13 +68,27 @@ z = Signal(Signal(1))
     - benchmarking?
 =#
 
-on(s...) do
-    # stuff with signals
+on(x) do
+    # on updates to signal x
+    f(...)
 end
 
 every(Hz) do
     # on periodic interval
+    f(...)
 end
+
+always(x) do
+    # while signal is active, no rate limiter
+    f(...)
+end
+
+
+#MAYBE:
+# until(s, v) do
+#     # on updates to s until s[] == v
+#     f(...)
+# end
 
 # for debug/overview:
 # stacktrace(task) or status(task)

@@ -1,90 +1,38 @@
-#------------------------------------ AbstractSignal api ------------------------------------#
+using Base.Threads: @spawn, Condition
+
+abstract type AbstractSignal{T}
+end
+
+mutable struct Signal{T} <: AbstractSignal{T}
+    @atomic v::T
+    @atomic t::Nanosecond
+    @atomic open::Bool #FUTURE: this will change
+    cond::Condition
+    Signal{T}(v₀) where {T} = new(v₀, now(), true, Condition())
+end
+
+Signal(v₀::T) where {T} = Signal{T}(v₀)
+Signal{T}(v₀) where {T<:Signal} = @error "cannot create Signals of Signals"
 
 
-abstract type AbstractSignal{T} end
-
+#------------------------------------ read/write functionality ------------------------------------#
 
 """
     s[] = v
-Set the value of the signal `s` to `v`, and update it's timestamp in a thread-safe manner.
+Store a value `v` to a signal `s`, along with a timestamp. Atomic, thread-safe.
 """
-Base.setindex!(s::AbstractSignal, v) = setvalue!(s, v)
-
+@inline function Base.setindex!(s::Signal, v)
+    @atomic s.v = v
+    @atomic s.t = now()
+    notify(s)
+    nothing # maybe return v?
+end
 
 """
     s[] -> v
-Return the current value `v` of the signal `s` in a thread-safe manner.
-"""
-Base.getindex(s::AbstractSignal) = getvalue(s)
-
-#FUTURE: look into type stability tests with @code_warntype, @inferred, @code_native, @benchmark
-# ie, s[]::T for Signal{T}
-#FUTURE: Base.eltype(s)
-
-
-#------------------------------------ simple signal implementation ------------------------------------#
-#TODO: update constructors & docstrings
-#NOTE: constructors may be redesigned
-
-
-"""
-    Signal{T} <: AbstractSignal{T}
-
-The Signal type represents a time-variant quantity of type `T`, which can be safely shared by multiple threads. Stores values in a buffer of `(v,t)` pairs, where `v` is the value and `t` is a timestamp of when the `v` was written.
-"""
-mutable struct Signal{T} <: AbstractSignal{T}
-    @atomic v::T
-    @atomic t::Nano
-    Signal{T}(v0::T) where {T} = new(v0, now())
-end
-#TODO: add a condition
-
-
-
-"""
-    Signal(v0::T)
-
-Create a `Signal{T}` with an initial value of `v0`
-"""
-Signal(v0::T) where {T} = Signal{T}(v0) # gets T from v0
-
-"""
-    Signal{T}(v0)
-    
-Create a `Signal{T}` with an initial value of `v0`, where `v0` is converted to `T`.
-"""
-Signal{T}(v0) where {T} = Signal{T}(convert(T, v0))
-
-"""
-    Signal{T}()
-
-Create a `Signal{T}` with an initial value created by `null(T)`.
-"""
-Signal{T}() where {T} = Signal{T}(zero(T))
-
-
-
-#MAYBE: use null() function as in previous implementations?
-
-
-
-
-"""
-    setvalue!(s, v)
-Store a value `v` to a signal `s`, along with a timestamp. Atomic, thread-safe.
-"""
-@inline function setvalue!(s::Signal, v)
-    @atomic s.v = v
-    @atomic s.t = now()
-    #TODO: notify condition on setvalue
-    nothing
-end
-
-"""
-    getvalue(s)
 Read the current value of a signal. Atomic, thread-safe.
 """
-@inline getvalue(s::Signal) = s.v
+@inline Base.getindex(s::Signal) = s.v
 
 """
     gettime(s)
@@ -93,22 +41,52 @@ Read the most recent timestamp of a signal. Atomic, thread-safe.
 @inline gettime(s::Signal) = s.t
 
 
+#------------------------------------ notification functionality ------------------------------------#
 
-
-#------------------------------------ AbstractSignal default wrapper implementation ------------------------------------#
-
-#= #NOTE: this may change
-     we assume that a typical AbstractSignal subtype contains a field `signal`::Signal{T}
-    and here we forward the primary methods according to that assumption
-
-    mutable struct ASignal{T} <: AbstractSignal{T}
-        ...
-        s::Signal{T}
+function Base.notify(x::AbstractSignal)
+    lock(x.cond) do
+        notify(x.cond)
     end
-=#
+end
 
-@inline setvalue!(s::AbstractSignal, v) = setvalue!(s.signal, v)
-@inline getvalue(s::AbstractSignal) = getvalue(s.signal)
-@inline gettime(s::AbstractSignal) = gettime(s.signal)
+function Base.wait(x::AbstractSignal)
+    lock(x.cond) do
+        wait(x.cond)
+    end
+end
+
+# on(x) do
+    #f(x)
+# end
+function on(f, x)
+    @spawn try
+        @info "starting"
+        while isopen(x)
+            wait(x)
+            f()
+        end
+    finally
+        @info "stopped"
+    end
+end
 
 
+
+#NOTE: temporary way to stop on() fxns
+
+Base.isopen(x::AbstractSignal) = (true == x.isopen)
+
+function Base.close(x::AbstractSignal)
+    @atomic x.isopen = false
+    notify(x)
+end
+
+function Base.open(x::AbstractSignal)
+    @atomic x.isopen = true
+end
+
+#------------------------------------ extras ------------------------------------#
+
+function Base.show(io::IO, x::Signal{T}) where {T}
+    println(io, "Signal{$T}: $(x[])")
+end
