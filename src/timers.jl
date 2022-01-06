@@ -5,23 +5,62 @@
 
 
 mutable struct TaskDaemon
-    enabled::Bool
+    @atomic enabled::Bool
     timers::Vector{Timer}
-    selftask::Union{Task,Nothing} # store the daemon's task (to tell if it's running/crashed/etc.)
+    lock::ReentrantLock
+    self::Ref{Task} # store the daemon's task (to tell if it's running/crashed/etc.)
 end
 
-#TODO start/stop selftask
+global const taskdaemon = TaskDaemon(false, Timer[], ReentrantLock(), Ref{Task}())
 
-#TODO: selftask loop:
-@spawn begin
-    for t in timers
-        now() >= t.t_last + Nanosecond(t.freq)
+#TODO start/stop self
+function _taskdaemon_start()
+    global taskdaemon
+    @atomic taskdaemon.enabled = true
+    
+    taskdaemon.self = @spawn begin
+        while taskdaemon.enabled
+            lock(taskdaemon.lock) do
+                for t in taskdaemon.timers
+                    if now() >= t.t_last + Nanosecond(t.freq)
+                        notify(t)
+                    end
+                end
+            end
+            yield()
+        end
     end
-    yield()
 end
 
-#TODO: constructor
-global taskdaemon = TaskDaemon()
+function _taskdaemon_stop()
+    global taskdaemon
+    @atomic taskdaemon.enabled = false
+end
+
+function _taskdaemon_cycle()
+    global taskdaemon
+    lock(taskdaemon.lock) do
+        if isempty(taskdaemon.timers)
+            _taskdaemon_stop()
+        elseif !taskdaemon.enabled
+            _taskdaemon_start()
+        end
+    end
+end
+
+function _taskdaemon_add(t::Timer)
+    global taskdaemon
+    lock(taskdaemon.lock) do
+        push!(taskdaemon.timers, t)
+    end
+end
+
+function _taskdaemon_rm(t::Timer)
+    global taskdaemon
+    lock(taskdaemon.lock) do
+        deleteat!(taskdaemon.timers, taskdaemon.timers .== t)
+    end
+end
 
 
 #------------------------------------ timers ------------------------------------#
@@ -37,7 +76,8 @@ mutable struct Timer <: AbstractSignal{Nanosecond}
 
     function Timer(hz::Hz)
         tx = new(now(), hz, false, Condition())
-        #TODO: add to scheduler
+        _taskdaemon_add(tx)
+        return tx
     end
 
 end
