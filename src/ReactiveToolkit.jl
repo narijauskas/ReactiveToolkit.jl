@@ -24,6 +24,8 @@ export Signal, on
 #= Issues:
     - how to handle Signals of Signals? (forbid)
     - how to schedule MIMO tasks?
+        - onany by default
+        - how to notify only when all?
     - how to handle external inputs (eg. recv(UDPSocket))
         - maybe with a trait? Reactivity? Observability? Detectable?
 =#
