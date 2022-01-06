@@ -16,6 +16,8 @@ s2 = Signal(2.0)
 @test s2 isa Signal{Float64}
 @test 2.0 === s2[]
 
+@test eltype(s2) == Float64
+
 # println("\nbenchmark-setting signal value:")
 # b1 = @benchmark s1[] = 1
 # show(stdout, MIME"text/plain"(), b1)

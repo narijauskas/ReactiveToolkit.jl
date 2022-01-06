@@ -14,6 +14,7 @@ end
 Signal(v₀::T) where {T} = Signal{T}(v₀)
 Signal{T}(v₀) where {T<:Signal} = @error "cannot create Signals of Signals"
 
+Base.eltype(::Type{Signal{T}}) where {T} = T
 
 #------------------------------------ read/write functionality ------------------------------------#
 
