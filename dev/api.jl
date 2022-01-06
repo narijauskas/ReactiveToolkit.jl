@@ -32,6 +32,29 @@ Issues:
             t = Timer()
             every(t, .)
             kill!(t)
+        - option 3. use a global task list
+            every(Hz) do ...
+            kill!(RTk.overview()[1])
+    - stopping regular tasks
+        1. stop signal task is based on
+        2. kill task itself (via handle)
+        3. have global list of tasks (probably useful)
+            RTk.overview()
+    
+    RTk.graph()
+        - global overview
+
+
+Task Control:
+    tasks are assigned a unique taskid on creation
+    stored to global registry
+    display as graph
+    know input signal (signals?)
+    how to represent outputs for arbitrary on fxns?
+    stop!(taskid)
+
+    tasks have a status: runnable(active)/failed/done
+    tasks have an id: stop!(taskid)
 =#
 #------------------------------------ signals ------------------------------------#
 
@@ -59,6 +82,14 @@ z = Signal(Signal(1))
 
 #------------------------------------ tasks ------------------------------------#
 # return ReactiveTask - a wrapper for the underlying task, & any signals that it listens to
+# store in a global task list
+    # used to generate graph
+    # used to kill tasks
+    # accept name as kwarg
+    # show overview, if running, etc.
+
+on(f, x; name="foo")
+kill!(RTk.tasks["foo"])
 
 #= kwargs
     - taskref?

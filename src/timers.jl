@@ -3,6 +3,9 @@
 # managed by taskdaemon
 #------------------------------------ taskdaemon/scheduler ------------------------------------#
 
+#FUTURE: store tasks as a sorted binary search tree (AVLTree)
+# for now, use `naive` implementation from SRTxBase
+
 
 mutable struct TaskDaemon
     enabled::Bool
