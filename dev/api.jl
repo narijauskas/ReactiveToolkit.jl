@@ -17,6 +17,8 @@ Issues:
     - how to handle MIMO tasks?
         - option 1. run task on any signal update
         - option 2. run task once all signals have updated
+        - option 3. restrict to SIMO tasks (do merging separately)
+            something like: on(merge(s1,s2)) do
     - signals of signals
         - just don't allow these to be constructed
     - synchronization
@@ -30,6 +32,29 @@ Issues:
             t = Timer()
             every(t, .)
             kill!(t)
+        - option 3. use a global task list
+            every(Hz) do ...
+            kill!(RTk.overview()[1])
+    - stopping regular tasks
+        1. stop signal task is based on
+        2. kill task itself (via handle)
+        3. have global list of tasks (probably useful)
+            RTk.overview()
+    
+    RTk.graph()
+        - global overview
+
+
+Task Control:
+    tasks are assigned a unique taskid on creation
+    stored to global registry
+    display as graph
+    know input signal (signals?)
+    how to represent outputs for arbitrary on fxns?
+    stop!(taskid)
+
+    tasks have a status: runnable(active)/failed/done
+    tasks have an id: stop!(taskid)
 =#
 #------------------------------------ signals ------------------------------------#
 
@@ -56,11 +81,15 @@ z = Signal(Signal(1))
 # kill!(tx)
 
 #------------------------------------ tasks ------------------------------------#
-# what to return?
-# - actual tasks
-# - task wrappers (eg. ReactiveTask/RepeatingTask) - useful for overview/debug
-# - other signals? (return type of task?)
-# - nothing
+# return ReactiveTask - a wrapper for the underlying task, & any signals that it listens to
+# store in a global task list
+    # used to generate graph
+    # used to kill tasks
+    # accept name as kwarg
+    # show overview, if running, etc.
+
+on(f, x; name="foo")
+kill!(RTk.tasks["foo"])
 
 #= kwargs
     - taskref?
@@ -84,16 +113,12 @@ always(x) do
 end
 
 
-#MAYBE:
-# until(s, v) do
-#     # on updates to s until s[] == v
-#     f(...)
-# end
-
 # for debug/overview:
 # stacktrace(task) or status(task)
 
 #------------------------------------ operators ------------------------------------#
+# signal -> signal (with an internal task)
+
 
 # y = merge(xs...)
 # y = {xs...}
@@ -109,7 +134,7 @@ end
 # y = f(x, xn-1, ..., x0)
 
 # rate limiter
-# y = limit(x, Hz)
+# y = throttle(x, Hz)
 
 # conditional limiters
 # y = filter(f, x)
@@ -125,7 +150,7 @@ end
 # associate the lifetimes of signals/tasks
 
 # flatten
-# Signal{Signal{T}} -> Signal{T}
+# (maybe) Signal{Signal{T}} -> Signal{T}
 # Array{Signal{T}} -> Signal{Array{T}}
 # Signal{T} -> Signal{T} # (default)
 
@@ -138,6 +163,7 @@ end
 # see Reactive.jl source code
 # do f(xs...) after y
 
+# y = similar(x)
 
 # after(f, t, xs...)
 after(t) do
