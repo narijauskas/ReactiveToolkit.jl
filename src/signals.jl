@@ -1,20 +1,15 @@
-using Base.Threads: @spawn, Condition
-
 abstract type AbstractSignal{T}
 end
 
 mutable struct Signal{T} <: AbstractSignal{T}
     @atomic v::T
     @atomic t::Nanosecond
-    @atomic open::Bool #FUTURE: this will change
     cond::Condition
-    Signal{T}(v₀) where {T} = new(v₀, now(), true, Condition())
+    Signal{T}(v₀) where {T} = new(v₀, now(), Condition())
 end
 
 Signal(v₀::T) where {T} = Signal{T}(v₀)
 Signal{T}(v₀) where {T<:Signal} = @error "cannot create Signals of Signals"
-
-Base.eltype(::Type{Signal{T}}) where {T} = T
 
 #------------------------------------ read/write functionality ------------------------------------#
 
@@ -41,7 +36,6 @@ Read the most recent timestamp of a signal. Atomic, thread-safe.
 """
 @inline gettime(s::Signal) = s.t
 
-
 #------------------------------------ notification functionality ------------------------------------#
 
 function Base.notify(x::AbstractSignal)
@@ -56,9 +50,28 @@ function Base.wait(x::AbstractSignal)
     end
 end
 
-# on(x) do
-    #f(x)
-# end
+#------------------------------------ other ------------------------------------#
+
+Base.eltype(::Type{Signal{T}}) where {T} = T
+
+function Base.show(io::IO, x::Signal{T}) where {T}
+    println(io, "Signal{$T}: $(x[])")
+end
+
+
+
+#= see tasks.jl
+
+tk = on(x) do
+    f(x)
+end
+
+=#
+
+#=
+#NOTE: temporary way to stop on() fxns
+
+
 function on(f, x)
     @spawn try
         @info "starting"
@@ -72,9 +85,6 @@ function on(f, x)
 end
 
 
-
-#NOTE: temporary way to stop on() fxns
-
 Base.isopen(x::AbstractSignal) = (true == x.isopen)
 
 function Base.close(x::AbstractSignal)
@@ -85,9 +95,4 @@ end
 function Base.open(x::AbstractSignal)
     @atomic x.isopen = true
 end
-
-#------------------------------------ extras ------------------------------------#
-
-function Base.show(io::IO, x::Signal{T}) where {T}
-    println(io, "Signal{$T}: $(x[])")
-end
+=#
