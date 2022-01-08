@@ -60,3 +60,29 @@ end
 
 onany() # wait for any to update
 onall() # wait for all to update
+
+
+
+
+## ------------------------------------ external input listeners ------------------------------------ ##
+using Sockets
+sock = UDPSocket()
+
+function on(fn, x)
+    while isopen(x)
+        fn(recv(x))
+    end
+end
+
+close(sock)
+
+ 
+
+on(UDPSocket()) do bytes
+    fn(bytes)
+end
+
+
+on(mcu) do bytes
+    fn(bytes)
+end

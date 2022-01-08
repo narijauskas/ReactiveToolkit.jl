@@ -15,11 +15,14 @@ export Hz, kHz, MHz, GHz
 include("signals.jl")
 export Signal
 
-#TODO: Timer, every, kill!
 
 
 include("tasks.jl")
+export ReactiveTask
 export on, every
+
+#TODO: Timer, every, kill!
+
 
 # Signals (construction, notification, value)
 # Timers (construction, notification, taskdaemon)
@@ -34,6 +37,7 @@ export on, every
         - how to notify only when all?
     - how to handle external inputs (eg. recv(UDPSocket))
         - maybe with a trait? Reactivity? Observability? Detectable?
+        - maybe make it a type of signal
 =#
 
 #= performance of a captured variable in closures

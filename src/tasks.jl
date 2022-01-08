@@ -37,11 +37,11 @@ global taskid = 0x0000
 
 mutable struct ReactiveTask
     enabled::Bool
-    cond::Condition # inherited from signal
     id::UInt16
     task::Task
+    # cond::Condition # inherited from signal
     # ? - name::Union{String,Nothing}
-    ReactiveTask(x::AbstractSignal) = new(true, x.cond, (global taskid+=0x01))
+    ReactiveTask(x::AbstractSignal) = new(true, (global taskid+=0x01))
     # link condition from signal, assign unique taskid, assign task later
     #FUTURE: register globally
 end
@@ -67,13 +67,15 @@ function on(f, x)
     rt = ReactiveTask(x)
 
     rt.task = @spawn try
-        @info "starting"
+        @info "starting task $(rt.id)"
         while isenabled(rt)
-            wait(rt)
+            wait(x)
             f()
         end
+    # catch
+        # @info "task $(rt.id) failed"
     finally
-        @info "stopped"
+        @info "task $(rt.id) stopped"
     end
 
     return rt
