@@ -38,6 +38,22 @@ export on, every
     - how to handle external inputs (eg. recv(UDPSocket))
         - maybe with a trait? Reactivity? Observability? Detectable?
         - maybe make it a type of signal
+
+using Sockets
+sock = UDPSocket()
+
+function on(fn, sock)
+    rt = ReactiveTask()
+
+    
+    while isopen(sock)
+        fn(recv(sock))
+    end
+
+    return rt
+end
+
+close(sock)
 =#
 
 #= performance of a captured variable in closures

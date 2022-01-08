@@ -41,7 +41,7 @@ mutable struct ReactiveTask
     task::Task
     # cond::Condition # inherited from signal
     # ? - name::Union{String,Nothing}
-    ReactiveTask(x::AbstractSignal) = new(true, (global taskid+=0x01))
+    ReactiveTask() = new(true, (global taskid+=0x01))
     # link condition from signal, assign unique taskid, assign task later
     #FUTURE: register globally
 end
@@ -64,7 +64,7 @@ end
 ## ------------------------------------ starting/stopping tasks ------------------------------------ ##
 
 function on(f, x)
-    rt = ReactiveTask(x)
+    rt = ReactiveTask()
 
     rt.task = @spawn try
         @info "starting task $(rt.id)"
@@ -81,6 +81,11 @@ function on(f, x)
     return rt
 end
 
+#=
+Reaction(@spawn begin
+    ...
+end)
+=#
 
 function disable!(rt)
     rt.enabled = false
