@@ -1,27 +1,72 @@
+## ------------------------------------ task state ------------------------------------ ##
+
+abstract type TaskState end
+
+# task is currently runnable
+struct TaskActive <: TaskState end
+
+# task has crashed - see x.task for details
+struct TaskFailed <: TaskState end
+
+# task has completed - most likely stopped manually via kill!(x)
+struct TaskDone <: TaskState end
+
+
+function TaskState(x)
+    if istaskfailed(x.task)
+        return TaskFailed()
+    elseif istaskdone(x.task)
+        return TaskStopped()
+    else
+        return TaskActive()
+    end
+end
+
+#TODO: colors
+Base.show(io::IO, ::TaskActive) = print(io, "[active]")
+Base.show(io::IO, ::TaskFailed) = print(io, "[failed]")
+Base.show(io::IO, ::TaskDone)   = print(io, "[done]")
+
+
+
+
+
+## ------------------------------------ reactive tasks ------------------------------------ ##
+
+global taskid = 0x0000
 
 mutable struct ReactiveTask
     enabled::Bool
-    trigger::AbstractSignal # or condition from signal?
+    cond::Condition # inherited from signal
+    id::UInt16
     task::Task
-    # name::Union{String,Nothing}
-    #...?
-    ReactiveTask(x) = new(true, x) # assign task later
+    # ? - name::Union{String,Nothing}
+    ReactiveTask(x::AbstractSignal) = new(true, x.cond, (global taskid+=0x01))
+    # link condition from signal, assign unique taskid, assign task later
+    #FUTURE: register globally
 end
 
 isenabled(rt::ReactiveTask) = rt.enabled
 
-#TODO:
-# status(rt) - active/failed/done
+disable!(rt::ReactiveTask) = setproperty!(rt, :enabled, false), return rt
 
-# TODO: show()
+
+#TODO: get stacktrace via rt.task
+
+function Base.show(io::IO, rt::ReactiveTask)
+    print(io, "ReactiveTask $(rt.id) - $(TaskState(rt))")
+end
+
+
+
+
+
+## ------------------------------------ starting/stopping tasks ------------------------------------ ##
 
 function on(f, x)
     rt = ReactiveTask(x)
-    # create ReactiveTask
-    # assign taskid
-    # register globally
 
-    @spawn try
+    rt.task = @spawn try
         @info "starting"
         while isenabled(rt)
             wait(rt)
@@ -31,28 +76,38 @@ function on(f, x)
         @info "stopped"
     end
 
-    ...
     return rt
 end
 
-#TODO:
-# destroy!(taskid)
-# deregister globally
 
-function stop!(rt::ReactiveTask)
+function disable!(rt)
     rt.enabled = false
-    notify(rt.trigger)
+    # notify(rt.cond) can cause unintended updates to other tasks that depend on the same signal
+    return rt
 end
 
-#TODO:
-# stop!(taskid)
-# lookup & stop
 
 function every(f, freq)
-    ...
+    # ...
     return rt
 end
 
+## ------------------------------------ global overview/graph ------------------------------------ ##
+
+#TODO: register task on creation
+
+#TODO: stop!(taskid)/disable!
+# lookup & stop
+
+#TODO: show task overview as a list
+#TODO: show task + signal overview as a graph
+
+#TODO: purge!() - remove done/failed tasks
+
+#TODO: destroy!(taskid)
+# deregister globally
+
+## ------------------------------------ other ------------------------------------ ##
 
 
 # function on(f, x)

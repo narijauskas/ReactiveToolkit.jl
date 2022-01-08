@@ -36,4 +36,13 @@ export on, every
         - maybe with a trait? Reactivity? Observability? Detectable?
 =#
 
+#= performance of a captured variable in closures
+    does the compiler know the return type of a signal?
+
+    https://docs.julialang.org/en/v1/manual/performance-tips/#man-performance-captured
+    https://github.com/c42f/FastClosures.jl
+    https://github.com/JuliaLang/julia/issues/964
+    https://docs.julialang.org/en/v1/manual/types/#Type-Declarations-1
+=#
+
 end # module

@@ -1,5 +1,4 @@
-abstract type AbstractSignal{T}
-end
+abstract type AbstractSignal{T} end
 
 mutable struct Signal{T} <: AbstractSignal{T}
     @atomic v::T
