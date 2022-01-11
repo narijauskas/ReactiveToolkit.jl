@@ -7,6 +7,7 @@ using Sockets
 
 greet() = print("Hello World!")
 
+#TODO: console colors
 
 include("freqs.jl")
 export Nanosecond, now

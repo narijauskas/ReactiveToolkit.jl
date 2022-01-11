@@ -73,8 +73,13 @@ function on(f::Function, x)
             f()
             # or f(recv(x)) ?
         end
-    # catch
-        # @info "task $(rt.id) failed"
+    catch e
+        if e isa TaskDone
+            println("done!")
+        else
+            rethrow(e)
+        end
+        # e isa TaskDone && rethrow(e)
     finally
         @info "task $(rt.id) stopped"
     end

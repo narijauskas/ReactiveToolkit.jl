@@ -86,3 +86,25 @@ end
 on(mcu) do bytes
     fn(bytes)
 end
+
+
+## ------------------------------------ UDP ------------------------------------ ##
+using Sockets
+sock = UDPSocket()
+bind(sock, ip"0.0.0.0", 1672) # listen from all ip addresses at port 1672
+
+send(sock, getipaddr(), 1672, "msg") # send to local ip address
+
+localip = getipaddr()
+
+@benchmark @sync begin
+    @async recv(sock)
+    yield()
+    send(sock, localip, 1672, "1") # send to local ip address
+end
+
+@benchmark @sync begin
+    @async recv(s1)
+    yield()
+    s1[] = 1
+end

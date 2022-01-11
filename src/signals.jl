@@ -39,9 +39,16 @@ Read the most recent timestamp of a signal. Atomic, thread-safe.
 
 #------------------------------------ notification functionality ------------------------------------#
 
+
 function Base.notify(x::AbstractSignal)
     lock(x.cond) do
         notify(x.cond)
+    end
+end
+
+function Base.notify(x::AbstractSignal, arg)
+    lock(x.cond) do
+        notify(x.cond, arg)
     end
 end
 
