@@ -16,7 +16,7 @@ function TaskState(x)
     if istaskfailed(x.task)
         return TaskFailed()
     elseif istaskdone(x.task)
-        return TaskStopped()
+        return TaskDone()
     else
         return TaskActive()
     end
@@ -62,8 +62,8 @@ end
 
 
 ## ------------------------------------ starting/stopping tasks ------------------------------------ ##
-
-function on(f, x)
+#x::Signal?
+function on(f::Function, x)
     rt = ReactiveTask()
 
     rt.task = @spawn try
@@ -71,6 +71,25 @@ function on(f, x)
         while isenabled(rt)
             wait(x)
             f()
+            # or f(recv(x)) ?
+        end
+    # catch
+        # @info "task $(rt.id) failed"
+    finally
+        @info "task $(rt.id) stopped"
+    end
+
+    return rt
+end
+
+
+function on(f::Function, x::UDPSocket)
+    rt = ReactiveTask()
+
+    rt.task = @spawn try
+        @info "starting task $(rt.id)"
+        while isopen(x)
+            f(recv(x))
         end
     # catch
         # @info "task $(rt.id) failed"

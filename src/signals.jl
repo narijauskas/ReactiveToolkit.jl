@@ -8,7 +8,9 @@ mutable struct Signal{T} <: AbstractSignal{T}
 end
 
 Signal(v₀::T) where {T} = Signal{T}(v₀)
-Signal{T}(v₀) where {T<:Signal} = @error "cannot create Signals of Signals"
+Signal{T}(v₀) where {T <: Signal} = @error "cannot create Signals of Signals"
+Signal{T}() where {T} = @error "Signals must have a value"
+
 
 #------------------------------------ read/write functionality ------------------------------------#
 
@@ -47,6 +49,11 @@ function Base.wait(x::AbstractSignal)
     lock(x.cond) do
         wait(x.cond)
     end
+end
+
+function Sockets.recv(x::AbstractSignal)
+    wait(x)
+    return x[]
 end
 
 #------------------------------------ other ------------------------------------#

@@ -1,6 +1,7 @@
 module ReactiveToolkit
 
 using Base.Threads: @spawn, Condition
+using Sockets
 
 #MAYBE: import Observables for compatibility?
 
@@ -45,7 +46,7 @@ sock = UDPSocket()
 function on(fn, sock)
     rt = ReactiveTask()
 
-    
+
     while isopen(sock)
         fn(recv(sock))
     end

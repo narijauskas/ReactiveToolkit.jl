@@ -3,7 +3,7 @@ using ReactiveToolkit, Test
 #FUTURE: test @inferred for type stability
 #MAYBE: formally test thread-safety?
 
-const s1 = Signal{Int}()
+const s1 = Signal{Int}(0)
 @test s1 isa Signal{Int}
 @test 0 === s1[]
 
@@ -17,6 +17,23 @@ s2 = Signal(2.0)
 @test 2.0 === s2[]
 
 @test eltype(s2) == Float64
+
+
+
+
+
+# errors/invalid types
+
+
+
+
+
+
+
+
+
+
+
 
 # println("\nbenchmark-setting signal value:")
 # b1 = @benchmark s1[] = 1
