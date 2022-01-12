@@ -22,7 +22,7 @@ function TaskState(x)
     end
 end
 
-#TODO: colors
+
 Base.show(io::IO, ::TaskActive) = printcr(io, crayon"green", "[active]")
 Base.show(io::IO, ::TaskFailed) = printcr(io, crayon"red", "[failed]")
 Base.show(io::IO, ::TaskDone)   = printcr(io, crayon"magenta", "[done]")
@@ -72,6 +72,7 @@ function on(f::Function, x)
             wait(x)
             f()
             # or f(recv(x)) ?
+            yield()
         end
     catch e
         if e isa TaskDone
@@ -95,6 +96,7 @@ function on(f::Function, x::UDPSocket)
         @info "starting task $(rt.id)"
         while isopen(x)
             f(recv(x))
+            yield()
         end
     # catch
         # @info "task $(rt.id) failed"

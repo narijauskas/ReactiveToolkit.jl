@@ -95,7 +95,7 @@ kill!(RTk.tasks["foo"])
     - taskref?
     - task name?
     - benchmarking?
-=#
+=# 
 
 on(x) do
     # on updates to signal x
