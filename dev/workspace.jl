@@ -108,3 +108,12 @@ end
     yield()
     s1[] = 1
 end
+
+
+## ------------------------------------ Crayons ------------------------------------ ##
+using Crayons
+
+printgr(s) = print(crayon"gray", s, crayon"default")
+printcr(c, s) = print(crayon"bold", c, s, crayon"default", crayon"!bold")
+println(crayon"bold", crayon"red", "abcd", crayon"default")
+println("abcd")

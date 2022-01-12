@@ -23,9 +23,9 @@ function TaskState(x)
 end
 
 #TODO: colors
-Base.show(io::IO, ::TaskActive) = print(io, "[active]")
-Base.show(io::IO, ::TaskFailed) = print(io, "[failed]")
-Base.show(io::IO, ::TaskDone)   = print(io, "[done]")
+Base.show(io::IO, ::TaskActive) = printcr(io, crayon"green", "[active]")
+Base.show(io::IO, ::TaskFailed) = printcr(io, crayon"red", "[failed]")
+Base.show(io::IO, ::TaskDone)   = printcr(io, crayon"magenta", "[done]")
 
 
 

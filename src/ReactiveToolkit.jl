@@ -1,13 +1,19 @@
 module ReactiveToolkit
 
+using Crayons
+# printgr(s) = print(crayon"grey", s, crayon"default")
+printcr(c::Crayon, xs...) = printcr(stdout::IO, c, xs...)
+printcr(io::IO, c::Crayon, xs...) = print(io, crayon"bold", c, xs..., crayon"default", crayon"!bold")
+
+# printgr(xs...) = printgr(stdout::IO, xs...)
+# printgr(xs...) = print(crayon"gray", xs..., crayon"default")
+
+
 using Base.Threads: @spawn, Condition
 using Sockets
 
 #MAYBE: import Observables for compatibility?
 
-greet() = print("Hello World!")
-
-#TODO: console colors
 
 include("freqs.jl")
 export Nanosecond, now
