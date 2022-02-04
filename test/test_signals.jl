@@ -1,8 +1,13 @@
 using ReactiveToolkit, Test
+using Base.Threads: @spawn
 
 #FUTURE: test @inferred for type stability
 #MAYBE: formally test thread-safety?
 
+
+
+
+## ------------------------------------ basics ------------------------------------ ##
 const s1 = Signal{Int}(0)
 @test s1 isa Signal{Int}
 @test 0 === s1[]
@@ -26,26 +31,17 @@ s2 = Signal(2.0)
 
 
 
+## ------------------------------------ wait/notify ------------------------------------ ##
+s2[] = 0
+
+@spawn begin
+    wait(s1)
+    s2[] = s1[]
+end
+
+sleep(0.1)
+s1[] = 1
+sleep(0.1)
+@test 1.0 === s2[]
 
 
-
-
-
-
-
-
-
-# println("\nbenchmark-setting signal value:")
-# b1 = @benchmark s1[] = 1
-# show(stdout, MIME"text/plain"(), b1)
-# println()
-
-# println("\nbenchmark-getting signal value:")
-# b2 = @benchmark s1[]
-# show(stdout, MIME"text/plain"(), b2)
-# println()
-
-# println("\nbenchmark-getting signal time:")
-# b3 = @benchmark RealtimeToolkit.gettime(s1)
-# show(stdout, MIME"text/plain"(), b3)
-# println()

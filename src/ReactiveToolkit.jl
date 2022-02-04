@@ -10,7 +10,7 @@ printcr(io::IO, c::Crayon, xs...) = print(io, crayon"bold", c, xs..., crayon"def
 
 
 using Base.Threads: @spawn, Condition
-using Sockets
+using Sockets # maybe not
 
 #MAYBE: import Observables for compatibility?
 
@@ -24,10 +24,19 @@ include("signals.jl")
 export Signal
 
 
+include("reactions.jl")
+export Reaction, @reaction
 
-include("tasks.jl")
-export ReactiveTask
-export on, every
+
+
+
+
+
+
+
+# include("tasks.jl")
+# export ReactiveTask
+# export on, every
 
 #TODO: Timer, every, kill!
 
