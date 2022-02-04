@@ -71,22 +71,27 @@ global index = Reaction[]
 # index
 # index by index or name
 
-#DOC: list reactions
+#DOC: list reactions in the global index (ie. those created by @reaction)
 function list()
     global index
-    foreach(enumerate(index)) do (i,rxn)
+    foreach(enumerate(index)) do (i, rxn)
         println("[$i] - $rxn")
     end
     return nothing
 end
 
-#DOC: remove inactive reactions
-# purge!() or clean!()
-# filter all by istaskdone/istaskfailed
-# TaskState(x) == TaskActive()
+#DOC: remove inactive reactions from the index
+function clean!()
+    global index
+    filter!(index) do rxn
+        TaskState(rxn) == TaskActive()
+    end
+    return nothing
+end
 
 
-# graph()
+
+# graph!(ax)
 
 
 ## ------------------------------------ macro ------------------------------------ ##
@@ -103,9 +108,7 @@ macro reaction(name, ex)
 
         rxn.task = @spawn begin
             try
-                println()
-                printcr(crayon"cyan", "RTk> ")
-                println("starting $($name)")
+                println(stdout, "\n", crayon"cyan", "RTk> ", crayon"default", "$($name) starting")
                 while isenabled(rxn)
                     $(esc(ex)) # escape the expression
                     yield()
@@ -113,9 +116,7 @@ macro reaction(name, ex)
             catch e
                 rethrow(e)
             finally
-                println()
-                printcr(crayon"cyan", "RTk> ")
-                println("$($name) stopped")
+                println(stdout, "\n", crayon"cyan", "RTk> ", crayon"default", "$($name) stopped")
             end
         end
 
@@ -127,31 +128,46 @@ end
 
 
 
-
 ## ------------------------------------ on/every ------------------------------------ ##
 
 # onany(f, xs...)
 # make a signal that waits for any, then notifies common?
 
+# @on x ex
+# @on x "name" ex
+
+
+
+macro on(x, ex)
+    return quote
+        @reaction "on x" begin
+            wait($(esc(x)))
+            $(esc(ex))
+        end
+    end
+end
+
 
 #MAYBE: make a macro to pull variable names for @reaction "on $x" begin ... end
 
-function on(f, x)
-    # make condition
-    # add condition to each x in xs...
-    @reaction "ON" begin
-        wait(cond)
-        f()
-    end
-end
+# function on(f, x)
+#     # make condition
+#     # add condition to each x in xs...
+#     @reaction "ON" begin
+#         wait(cond)
+#         f()
+#     end
+# end
 
 
+# @at hz ex
+# @at hz "name" ex
 
-function every(f, x)
-    # make timer
-    # add condition to taskdaemon
-    @reaction "EVERY" begin
-        wait(cond)
-        f()
-    end
-end
+# function every(f, x)
+#     # make timer
+#     # add condition to taskdaemon
+#     @reaction "EVERY" begin
+#         wait(cond)
+#         f()
+#     end
+# end

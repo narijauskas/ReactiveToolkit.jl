@@ -24,7 +24,7 @@ All: `while(isactive(rxn))`
 Base primitive:
 
 ```julia
-rxn = @reaction begin
+rxn = @reaction "name" begin
     # custom wait, eg. recv(socket)
     # ...
 end
@@ -36,13 +36,33 @@ These generate a `wait()` condition:
 rxn = @on(xs...) do
     #...
 end
+
+@on x println("hello")
+@on y fxn(a, b, c)
+```
+
+```julia
+@on all(xs...) begin
+    # ...
+end
+
+@on any(xs...) begin
+    # ...
+end
 ```
 
 ```julia
 rxn = @every(hz) do
     #...
 end
+
+@at Hz(1) println("hello")
+@at Hz(1) "printer" begin
+    println("hello")
+end
+
 ```
+
 
 ### Stopping Reactions
 ```julia
@@ -82,7 +102,7 @@ stop!(RTk.index...) # to stop all
 ```
 
 ```julia
-purge!(RTk.index) # to clean all done/failed
+RTk.clean!() # to clean all done/failed
 ```
 
 
@@ -104,3 +124,7 @@ RTk.daemon() # handles timing
 
 * map/map!
 * foldp
+
+
+## Future
+Check out [Transducers.jl](https://github.com/JuliaFolds/Transducers.jl)
