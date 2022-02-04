@@ -46,9 +46,9 @@ function Base.notify(x::AbstractSignal)
     end
 end
 
-function Base.notify(x::AbstractSignal, arg)
+function Base.notify(x::AbstractSignal, arg; kw...)
     lock(x.cond) do
-        notify(x.cond, arg)
+        notify(x.cond, arg; kw...)
     end
 end
 

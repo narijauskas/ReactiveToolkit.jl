@@ -26,7 +26,7 @@ export Signal
 
 include("reactions.jl")
 export Reaction, @reaction
-
+export stop!
 
 
 

@@ -49,6 +49,11 @@ end
 stop!(rxn)
 ```
 
+If needed, can do
+```julia
+notify(x, 0; error=true)
+```
+
 ### One-Shot Reactions
 For now:
 ```julia

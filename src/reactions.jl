@@ -49,7 +49,7 @@ end
 
 
 function Base.show(io::IO, rxn::Reaction)
-    print(io, "Reaction - $(TaskState(rxn))")
+    print(io, "$(rxn.name) - $(TaskState(rxn))")
 end
 
 
@@ -71,12 +71,25 @@ global index = Reaction[]
 # index
 # index by index or name
 
-# purge!()
+#DOC: list reactions
+function list()
+    global index
+    foreach(enumerate(index)) do (i,rxn)
+        println("[$i] - $rxn")
+    end
+    return nothing
+end
+
+#DOC: remove inactive reactions
+# purge!() or clean!()
+# filter all by istaskdone/istaskfailed
+# TaskState(x) == TaskActive()
 
 
+# graph()
 
 
-## ------------------------------------ marcro ------------------------------------ ##
+## ------------------------------------ macro ------------------------------------ ##
 
 
 #TODO: test this
@@ -90,26 +103,24 @@ macro reaction(name, ex)
 
         rxn.task = @spawn begin
             try
-                @info "starting $($name)"
+                println()
+                printcr(crayon"cyan", "RTk> ")
+                println("starting $($name)")
                 while isenabled(rxn)
                     $(esc(ex)) # escape the expression
                     yield()
                 end
             catch e
-                if e isa TaskDone
-                    println("done!")
-                else
-                    rethrow(e)
-                end
-                # e isa TaskDone && rethrow(e)
+                rethrow(e)
             finally
-                @info "$($name) stopped"
+                println()
+                printcr(crayon"cyan", "RTk> ")
+                println("$($name) stopped")
             end
         end
 
-        #TODO: index register rxn
         push!(ReactiveToolkit.index, rxn)
-
+        yield()
         rxn
     end
 end
@@ -122,6 +133,8 @@ end
 # onany(f, xs...)
 # make a signal that waits for any, then notifies common?
 
+
+#MAYBE: make a macro to pull variable names for @reaction "on $x" begin ... end
 
 function on(f, x)
     # make condition
