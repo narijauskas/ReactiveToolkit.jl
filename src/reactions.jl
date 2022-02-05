@@ -102,13 +102,6 @@ end
 
 ## ------------------------------------ macro ------------------------------------ ##
 
-
-#TODO: test this
-# macro reaction(ex)
-#     @reaction "Reaction" ex
-# end
-
-#TODO: finalizer ex
 macro reaction(name, ex, fx=:())
     return quote
         rxn = Reaction($name)
@@ -130,6 +123,31 @@ macro reaction(name, ex, fx=:())
 
         push!(ReactiveToolkit.index, rxn)
         yield()
+        rxn
+    end
+end
+
+macro asyncreaction(name, ex, fx=:())
+    return quote
+        rxn = Reaction($name)
+
+        rxn.task = @async begin
+            try
+                println(stdout, "\n", crayon"cyan", "RTk> ", crayon"default", "$($name) starting")
+                while isenabled(rxn)
+                    $(esc(ex)) # escape the expression
+                    yield()
+                end
+            catch e
+                rethrow(e)
+            finally
+                println(stdout, "\n", crayon"cyan", "RTk> ", crayon"default", "$($name) stopped")
+                $(esc(fx))
+            end
+        end
+
+        push!(ReactiveToolkit.index, rxn)
+        yield() # set sticky before this?
         rxn
     end
 end
