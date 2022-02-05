@@ -88,8 +88,10 @@ Maybe make a `@once` macro or function?
 ### Global Overview
 Like a task manager of sorts.
 
+`ReactionList` type.
+
 ```julia
-RTk.list() # list of running tasks along with index #
+RTk.list # list of running tasks along with index #
     # [1] map z on x,y - [active]
     # [2] Reaction every 10Hz - [done]
     # [3] NatNetClient - [failed]

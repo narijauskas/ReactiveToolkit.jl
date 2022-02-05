@@ -42,8 +42,9 @@ Base.show(io::IO, ::TaskDone)   = printcr(io, crayon"magenta", "[done]")
 
 mutable struct Reaction
     name::String
-    enabled::Bool
+    @atomic enabled::Bool
     task::Task
+    #MAYBE: trigger::Any <- would allow stopping timers, removing signal conditions
     Reaction(name) = new(name, true)
 end
 
@@ -58,8 +59,10 @@ end
 
 # is it allowed to run?
 isenabled(rxn) = rxn.enabled
-disable!(rxn) = setproperty!(rxn, :enabled, false), return rxn
-stop!(rxn) = disable!(rxn)
+function stop!(rxn::Reaction)
+    @atomic rxn.enabled = false
+    return rxn
+end
 
 
 
@@ -70,6 +73,9 @@ global index = Reaction[]
 # list()
 # index
 # index by index or name
+
+#TODO: return list
+#TODO: list type
 
 #DOC: list reactions in the global index (ie. those created by @reaction)
 function list()
@@ -102,7 +108,8 @@ end
 #     @reaction "Reaction" ex
 # end
 
-macro reaction(name, ex)
+#TODO: finalizer ex
+macro reaction(name, ex, fx=:())
     return quote
         rxn = Reaction($name)
 
@@ -117,6 +124,7 @@ macro reaction(name, ex)
                 rethrow(e)
             finally
                 println(stdout, "\n", crayon"cyan", "RTk> ", crayon"default", "$($name) stopped")
+                $(esc(fx))
             end
         end
 
@@ -144,31 +152,7 @@ macro on(x, ex)
         @reaction $name begin
             wait($(esc(x)))
             $(esc(ex))
-        end
+        end # no finalizer
     end
 end
 
-
-#MAYBE: make a macro to pull variable names for @reaction "on $x" begin ... end
-
-# function on(f, x)
-#     # make condition
-#     # add condition to each x in xs...
-#     @reaction "ON" begin
-#         wait(cond)
-#         f()
-#     end
-# end
-
-
-# @at hz ex
-# @at hz "name" ex
-
-# function every(f, x)
-#     # make timer
-#     # add condition to taskdaemon
-#     @reaction "EVERY" begin
-#         wait(cond)
-#         f()
-#     end
-# end
