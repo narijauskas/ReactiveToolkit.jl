@@ -122,7 +122,7 @@ end
 
 # y = merge(xs...)
 # y = {xs...}
-
+ 
 # stateless maps (lift)
 # y = map(f, xs...)
 # y = f(xs...)

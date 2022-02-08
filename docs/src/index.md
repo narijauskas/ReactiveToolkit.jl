@@ -1,9 +1,89 @@
 # ReactiveToolkit.jl
 
-## Signals
+## Overview
+
+This is a simple framework for writing soft realtime code based on julia's system of task-based concurrency.
+
+It has 2 functional components:
+
+**Actions** are repeating tasks of the form:
 
 ```julia
-x = Signal(1)
+on_start()
+actn = @action "name" on_loop() on_stop()
+```
+
+**Signals** are time-varying values that can be shared between them.
+```julia
+x = Signal(1) # Create a Signal{Int}
+x[] = 2 # set value (and notify)
+x[] # get value
+```
+
+
+## Example
+
+To print the value of x on each update:
+```julia
+x = Signal(0)
+@on x println(x[])
+```
+
+
+## Example
+
+```julia
+x = Signal(0.0)
+y = Signal(0.0)
+@on x begin
+    y[] = sin(x[])
+end
+```
+
+Now, whenever the value of `x` is changed, `y` will be set to `sin(x)` after a slight delay.
+```julia
+x[] = 1.0
+yield()
+y[] # returns sin(1.0) after a slight delay
+```
+
+## Other
+
+```julia
+
+axn = @action "say hello" begin
+    println("hello")
+    sleep(1)
+end
+```
+
+```julia
+@on x :(ex)
+
+@repeat "on x" begin
+    wait(x)
+    :(ex)
+end
+```
+
+**Signals** are time varying values that can be shared across tasks - the states of the robot
+
+
+
+### Soft Realtime
+An RTOS strictly bounds the time a task can run.
+Regular OS distributes processing resources to tasks as they become available.
+
+Soft realtime is the best we can do without an RTOS.
+Hard realtime is true (guaranteed) realtime.
+
+
+## Signals
+
+In order to communicate between
+
+```julia
+x = Signal(1) # Create a Signal{Int}
 x[] = 2 # set value (and notify)
 x[] # return value
 ```
@@ -18,6 +98,23 @@ notify(x)
 
 ## Reactions
 
+Think of tasks as zero-argument functions (or blocks of code) that can be interrupted and scheduled across CPU cores.
+
+An action is a set of 3 'tasks':
+
+```julia
+on_start()
+actn = @action "name" on_loop() on_stop()
+```
+
+| main thread | rxn thread |
+| --- | --- |
+| `setup_ex` |  |
+| `rxn = ...` | `main_ex` |
+| | `main_ex` |
+| | `main_ex` |
+| `stop!(rxn)` | `main_ex` |
+| | `final_ex` |
 
 All: `while(isactive(rxn))`
 
