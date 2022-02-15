@@ -178,7 +178,7 @@ macro at(hz, ex)
         timer = Signal(ns)
         add!(ReactiveToolkit.daemon, timer)
 
-        @reaction $name begin
+        @repeat $name begin
             wait(timer)
             $(esc(ex))
         end begin

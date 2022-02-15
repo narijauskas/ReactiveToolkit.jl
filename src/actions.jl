@@ -102,7 +102,7 @@ end
 
 ## ------------------------------------ macro ------------------------------------ ##
 
-macro reaction(name, ex, fx=:())
+macro repeat(name, ex, fx=:())
     return quote
         axn = Action($name)
 
@@ -127,7 +127,7 @@ macro reaction(name, ex, fx=:())
     end
 end
 
-macro asyncreaction(name, ex, fx=:())
+macro asyncrepeat(name, ex, fx=:())
     return quote
         axn = Action($name)
 
