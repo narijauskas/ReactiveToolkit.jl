@@ -4,7 +4,7 @@ using ReactiveToolkit, Test, SafeTestsets, BenchmarkTools
 @time begin
     @time @safetestset "Time & Frequency" begin include("test_times.jl") end
     @time @safetestset "Signals" begin include("test_signals.jl") end
-    # @time @safetestset "Reactions" begin include("test_reactions.jl") end
+    # @time @safetestset "Actions" begin include("test_actions.jl") end
 end
 
 # Level 2 Tests: performance/regression
@@ -12,6 +12,6 @@ end
 @time begin
     # @time @safetestset "Time & Frequency" begin include("bench_times.jl") end
     @time @safetestset "Signal Benchmarks" begin include("bench_signals.jl") end
-    # @time @safetestset "Reactions" begin include("bench_reactions.jl") end
+    # @time @safetestset "Actions" begin include("bench_actions.jl") end
 end
 =#

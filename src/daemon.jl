@@ -16,7 +16,7 @@ mutable struct Daemon
     # @atomic enabled::Bool
     timers::PriorityQueue{Signal{Nanosecond}, Nanosecond}
     lock::ReentrantLock # for timers or 
-    self::Union{Reaction,Nothing} # store the daemon's task (to tell if it's running/crashed/etc.)
+    self::Union{Action,Nothing} # store the daemon's task (to tell if it's running/crashed/etc.)
 end
 
 #TODO: long form, list signals

@@ -10,7 +10,7 @@ It has 2 functional components:
 
 ```julia
 on_start()
-actn = @action "name" on_loop() on_stop()
+axn = @repeat "name" on_loop() on_stop()
 ```
 
 **Signals** are time-varying values that can be shared between them.
@@ -51,7 +51,7 @@ y[] # returns sin(1.0) after a slight delay
 
 ```julia
 
-axn = @action "say hello" begin
+axn = @repeat "say hello" begin
     println("hello")
     sleep(1)
 end
@@ -96,7 +96,7 @@ wait(x)
 notify(x)
 ```
 
-## Reactions
+## Actions
 
 Think of tasks as zero-argument functions (or blocks of code) that can be interrupted and scheduled across CPU cores.
 
@@ -104,24 +104,24 @@ An action is a set of 3 'tasks':
 
 ```julia
 on_start()
-actn = @action "name" on_loop() on_stop()
+axn = @repeat "name" on_loop() on_stop()
 ```
 
-| main thread | rxn thread |
+| main thread | axn thread |
 | --- | --- |
 | `setup_ex` |  |
-| `rxn = ...` | `main_ex` |
+| `axn = ...` | `main_ex` |
 | | `main_ex` |
 | | `main_ex` |
-| `stop!(rxn)` | `main_ex` |
+| `stop!(axn)` | `main_ex` |
 | | `final_ex` |
 
-All: `while(isactive(rxn))`
+All: `while(isactive(axn))`
 
 Base primitive:
 
 ```julia
-rxn = @reaction "name" begin
+axn = @repeat "name" begin
     # custom wait, eg. recv(socket)
     # ...
 end
@@ -130,7 +130,7 @@ end
 These generate a `wait()` condition:
 
 ```julia
-rxn = @on(xs...) do
+axn = @on(xs...) do
     #...
 end
 
@@ -149,7 +149,7 @@ end
 ```
 
 ```julia
-rxn = @every(hz) do
+axn = @every(hz) do
     #...
 end
 
@@ -161,9 +161,9 @@ end
 ```
 
 
-### Stopping Reactions
+### Stopping Actions
 ```julia
-stop!(rxn)
+stop!(axn)
 ```
 
 If needed, can do
@@ -214,8 +214,8 @@ RTk.graph!(ax; kw...) # graph into any Makie backend, subfigure, etc.
 ```julia
 notify()
 wait()
-name!(rxn, name::String)
-isactive(rxn)
+name!(axn, name::String)
+isactive(axn)
 RTk.daemon() # handles timing
 ```
 

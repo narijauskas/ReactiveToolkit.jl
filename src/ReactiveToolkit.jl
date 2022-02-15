@@ -20,26 +20,22 @@ export Nanosecond, now
 export ns, μs, ms, seconds
 export Hz, kHz, MHz, GHz
 
+
 include("signals.jl")
 export Signal
 
 
-include("reactions.jl")
-export Reaction, @reaction
+include("actions.jl")
+export Action, @repeat
 export stop!
 export @on
 
 
-#TODO: combine freqs and daemon into timing.jl
+#TODO: combine freqs and daemon into timings.jl
 include("daemon.jl")
 export @at
 
 
-# include("tasks.jl")
-# export ReactiveTask
-# export on, every
-
-#TODO: Timer, every, kill!
 
 
 # Signals (construction, notification, value)

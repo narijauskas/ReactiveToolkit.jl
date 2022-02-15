@@ -40,17 +40,17 @@ Base.show(io::IO, ::TaskDone)   = printcr(io, crayon"magenta", "[done]")
 
 ## ------------------------------------ Reactions ------------------------------------ ##
 
-mutable struct Reaction
+mutable struct Action
     name::String
     @atomic enabled::Bool
     task::Task
     #MAYBE: trigger::Any <- would allow stopping timers, removing signal conditions
-    Reaction(name) = new(name, true)
+    Action(name) = new(name, true)
 end
 
 
-function Base.show(io::IO, rxn::Reaction)
-    print(io, "$(rxn.name) - $(TaskState(rxn))")
+function Base.show(io::IO, axn::Action)
+    print(io, "$(axn.name) - $(TaskState(axn))")
 end
 
 
@@ -58,10 +58,10 @@ end
 
 
 # is it allowed to run?
-isenabled(rxn) = rxn.enabled
-function stop!(rxn::Reaction)
-    @atomic rxn.enabled = false
-    return rxn
+isenabled(axn) = axn.enabled
+function stop!(axn::Action)
+    @atomic axn.enabled = false
+    return axn
 end
 
 
@@ -69,7 +69,7 @@ end
 
 ## ------------------------------------ globals ------------------------------------ ##
 
-global index = Reaction[]
+global index = Action[]
 # list()
 # index
 # index by index or name
@@ -80,8 +80,8 @@ global index = Reaction[]
 #DOC: list reactions in the global index (ie. those created by @reaction)
 function list()
     global index
-    foreach(enumerate(index)) do (i, rxn)
-        println("[$i] - $rxn")
+    foreach(enumerate(index)) do (i, axn)
+        println("[$i] - $axn")
     end
     return nothing
 end
@@ -89,8 +89,8 @@ end
 #DOC: remove inactive reactions from the index
 function clean!()
     global index
-    filter!(index) do rxn
-        TaskState(rxn) == TaskActive()
+    filter!(index) do axn
+        TaskState(axn) == TaskActive()
     end
     return nothing
 end
@@ -104,12 +104,12 @@ end
 
 macro reaction(name, ex, fx=:())
     return quote
-        rxn = Reaction($name)
+        axn = Action($name)
 
-        rxn.task = @spawn begin
+        axn.task = @spawn begin
             try
                 println(stdout, "\n", crayon"cyan", "RTk> ", crayon"default", "$($name) starting")
-                while isenabled(rxn)
+                while isenabled(axn)
                     $(esc(ex)) # escape the expression
                     yield()
                 end
@@ -121,20 +121,20 @@ macro reaction(name, ex, fx=:())
             end
         end
 
-        push!(ReactiveToolkit.index, rxn)
+        push!(ReactiveToolkit.index, axn)
         yield()
-        rxn
+        axn
     end
 end
 
 macro asyncreaction(name, ex, fx=:())
     return quote
-        rxn = Reaction($name)
+        axn = Action($name)
 
-        rxn.task = @async begin
+        axn.task = @async begin
             try
                 println(stdout, "\n", crayon"cyan", "RTk> ", crayon"default", "$($name) starting")
-                while isenabled(rxn)
+                while isenabled(axn)
                     $(esc(ex)) # escape the expression
                     yield()
                 end
@@ -146,9 +146,9 @@ macro asyncreaction(name, ex, fx=:())
             end
         end
 
-        push!(ReactiveToolkit.index, rxn)
+        push!(ReactiveToolkit.index, axn)
         yield() # set sticky before this?
-        rxn
+        axn
     end
 end
 
