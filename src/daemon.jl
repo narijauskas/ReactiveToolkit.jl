@@ -114,7 +114,7 @@ function _cycle(dmn::Daemon)
         @atomic dmn.self.enabled = false
     elseif isnothing(dmn.self) || TaskActive() != TaskState(dmn.self)
         # start daemon
-        dmn.self = @asyncreaction "daemon" loop(dmn)
+        dmn.self = @asyncrepeat "daemon" loop(dmn)
         # dmn.self.task.sticky = false
     else
         nothing
