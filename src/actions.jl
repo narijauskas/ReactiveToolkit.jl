@@ -3,6 +3,9 @@
 
 abstract type TaskState end
 
+# there is no task
+struct NoTask <: TaskState end
+
 # task is currently runnable
 struct TaskActive <: TaskState end
 
@@ -12,6 +15,7 @@ struct TaskFailed <: TaskState end
 # task has completed - most likely stopped manually via kill!(x)
 struct TaskDone <: TaskState end
 
+TaskState(::Nothing) = NoTask()
 
 function TaskState(x)
     if istaskfailed(x.task)
@@ -24,6 +28,7 @@ function TaskState(x)
 end
 
 
+Base.show(io::IO, ::NoTask) = printcr(io, crayon"dark_gray", "[no task]")
 Base.show(io::IO, ::TaskActive) = printcr(io, crayon"green", "[active]")
 Base.show(io::IO, ::TaskFailed) = printcr(io, crayon"red", "[failed]")
 Base.show(io::IO, ::TaskDone)   = printcr(io, crayon"magenta", "[done]")
