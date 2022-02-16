@@ -172,7 +172,7 @@ end
 macro on(x, ex)
     name = "on $x"
     return quote
-        @reaction $name begin
+        @repeat $name begin
             wait($(esc(x)))
             $(esc(ex))
         end # no finalizer
