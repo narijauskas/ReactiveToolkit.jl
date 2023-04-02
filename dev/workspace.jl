@@ -117,3 +117,64 @@ printgr(s) = print(crayon"gray", s, crayon"default")
 printcr(c, s) = print(crayon"bold", c, s, crayon"default", crayon"!bold")
 println(crayon"bold", crayon"red", "abcd", crayon"default")
 println("abcd")
+
+
+
+
+
+## ------------------------------------ globals ------------------------------------ ##
+# module Foo
+#     const t1::UInt64 = time_ns()
+#     t2::UInt64 = time_ns()
+#     t3 = time_ns()
+     
+#     now1() = time_ns() - t1
+#     now2() = time_ns() - t2
+#     now3() = time_ns() - t3
+# end
+
+
+
+## ------------------------------------ sockets ------------------------------------ ##
+using Sockets
+
+function tcp_server(port=2000)
+    server = listen(port)
+    @repeat "tcp server" begin
+        sock = accept(server)
+        println("Hello World\n")
+    end begin
+        isopen(server) && close(server)
+    end
+end
+
+# errormonitor(@async begin
+#     server = listen(2000)
+#     while true
+#         sock = accept(server)
+#         println("Hello World\n")
+#     end
+# end)
+
+
+
+
+
+## ------------------------------------ serial monitor ------------------------------------ ##
+using LibSerialPort
+
+function serial_io(name)
+    sp = SerialPort(name)
+    open(sp)
+    monitor = @repeat "serial monitor" begin
+        println(stdout, readline(sp))
+    end
+    console = Signal{String}()
+    writer = @on cmd "serial writer" begin
+        write(sp, cmd[]*"\n")
+    end
+end
+# serial port 
+# open serial port
+# repeat "serial monitor" begin
+    # println(readline(sp))

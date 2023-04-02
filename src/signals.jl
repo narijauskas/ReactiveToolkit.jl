@@ -2,7 +2,7 @@ abstract type AbstractSignal{T} end
 
 mutable struct Signal{T} <: AbstractSignal{T}
     @atomic v::T
-    @atomic t::Nanosecond
+    @atomic t::Nano
     cond::Condition
     Signal{T}(v₀) where {T} = new(v₀, now(), Condition())
 end

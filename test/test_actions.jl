@@ -17,6 +17,10 @@ rt1 = on(s1) do
 end
 
 
+rt1 = @on(s1) do
+    println("hello from thread $(Threads.threadid())")
+end 
+
 # block for ns
 function block(ns::Nanosecond)
     t₀ = now()

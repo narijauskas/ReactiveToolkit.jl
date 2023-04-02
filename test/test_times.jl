@@ -1,6 +1,6 @@
 using ReactiveToolkit, Test
 
-Nano = ReactiveToolkit.Nanosecond
+Nano = ReactiveToolkit.Nano
 
 # time constructors
 @test ns(1) == Nano(1)

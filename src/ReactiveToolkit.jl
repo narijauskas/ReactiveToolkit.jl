@@ -16,8 +16,8 @@ using Sockets # maybe not
 
 
 include("freqs.jl")
-export Nanosecond, now
-export ns, μs, ms, seconds
+export Nanos, now
+export nanos, micros, millis, secs
 export Hz, kHz, MHz, GHz
 
 

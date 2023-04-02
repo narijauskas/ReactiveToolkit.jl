@@ -25,7 +25,7 @@ function _taskdaemon_start()
         while taskdaemon.enabled
             lock(taskdaemon.lock) do
                 for t in taskdaemon.timers
-                    if now() >= t.t_last + Nanosecond(t.freq)
+                    if now() >= t.t_last + Nano(t.freq)
                         notify(t)
                     end
                 end
@@ -71,8 +71,8 @@ end
 # they get notified periodically by taskdaemon
 # they hold the last runtime as a value
 
-mutable struct Timer <: AbstractSignal{Nanosecond}
-    @atomic t_last::Nanosecond
+mutable struct Timer <: AbstractSignal{Nano}
+    @atomic t_last::Nano
     @atomic freq::Hz
     @atomic open::Bool
     cond::Condition

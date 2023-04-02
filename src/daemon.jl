@@ -9,12 +9,12 @@ using DataStructures
 # for now, use `naive` implementation from SRTxBase
 
 # type alias
-# Timer = Signal{Tuple{Hz, Nanosecond}}
+# Timer = Signal{Tuple{Hz, Nano}}
 
 mutable struct Daemon
     # timers::Vector{Signal}
     # @atomic enabled::Bool
-    timers::PriorityQueue{Signal{Nanosecond}, Nanosecond}
+    timers::PriorityQueue{Signal{Nano}, Nano}
     lock::ReentrantLock # for timers or 
     self::Union{Action,Nothing} # store the daemon's task (to tell if it's running/crashed/etc.)
 end
@@ -24,7 +24,7 @@ function Base.show(io::IO, ::Daemon)
     print(io, "RTk.daemon")
 end
 
-global const daemon = Daemon(PriorityQueue{Signal{Nanosecond}, Nanosecond}(), ReentrantLock(), nothing)
+global const daemon = Daemon(PriorityQueue{Signal{Nano}, Nano}(), ReentrantLock(), nothing)
 
 function loop(dmn)
     lock(dmn.lock) do
@@ -53,8 +53,8 @@ function loop(dmn)
         if now() >= t_next
             dmn.timers[timer] = now() + timer[]
             notify(timer)
-        elseif  now() + ms(2) < t_next
-            sleep(t_next-(now()+ms(1)))
+        elseif  now() + millis(2) < t_next
+            sleep(t_next-(now()+millis(1)))
         #elseif
             #microsleep()
         #elseif
@@ -75,9 +75,9 @@ end
 
 #---------------------- other sleep functions ----------------------#
 
-Base.sleep(ns::Nanosecond) = sleep(ns.ns/1e9)
+Base.sleep(ns::Nano) = sleep(ns.ns/1e9)
 
-#TODO: update for Nanoseconds
+#TODO: update for Nanos
 
 # Linux-only usleep function, best for 5ms to 500us
 # function microsleep(usecs)
@@ -106,7 +106,7 @@ function stop!(dmn::Daemon)
     unlock(dmn.lock)
 end
 
-# Timer(hz::Hz) = Signal(Nanosecond(hz))
+# Timer(hz::Hz) = Signal(Nano(hz))
 
 #assume lock is already held
 function _cycle(dmn::Daemon)
@@ -169,11 +169,12 @@ end
 
 #------------------------------------ at macro ------------------------------------#
 # managed by daemon
-
+# macro at(hz, name, ex)
+# end
 macro at(hz, ex)
     name = "at $hz"
     return quote
-        ns = Nanosecond($hz)
+        ns = Nano($hz)
         # make timer -> attatch to taskdaemon (lock, start/stop)
         timer = Signal(ns)
         add!(ReactiveToolkit.daemon, timer)
