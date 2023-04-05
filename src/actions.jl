@@ -66,6 +66,7 @@ end
 isenabled(axn) = axn.enabled
 function stop!(axn::Action)
     @atomic axn.enabled = false
+    # @async Base.throwto(axn.task, InterruptException())
     return axn
 end
 

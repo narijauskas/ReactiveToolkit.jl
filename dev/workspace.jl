@@ -161,19 +161,29 @@ end
 
 
 ## ------------------------------------ serial monitor ------------------------------------ ##
+using ReactiveToolkit
 using LibSerialPort
 
 function serial_io(name)
     sp = SerialPort(name)
     open(sp)
-    monitor = @repeat "serial monitor" begin
+
+    @repeat "serial monitor" begin
         println(stdout, readline(sp))
+    end begin
+        isopen(sp) && close(sp)
     end
-    console = Signal{String}()
-    writer = @on cmd "serial writer" begin
-        write(sp, cmd[]*"\n")
+
+    console = Signal{String}("")
+
+    @on console begin
+        write(sp, console[]*"\n")
     end
+
+    return console, sp
 end
+
+console, port = serial_io("COM6")
 # serial port 
 # open serial port
 # repeat "serial monitor" begin

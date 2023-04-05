@@ -6,6 +6,7 @@ version = "0.1.0"
 [deps]
 Crayons = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
+LibSerialPort = "a05a14c7-6e3b-5ba9-90a2-45558833e1df"
 Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"
 
 [compat]
