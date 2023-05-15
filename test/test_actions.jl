@@ -12,9 +12,9 @@ const s4 = Signal(0)
 const s4 = Signal(0)
 
 
-rt1 = on(s1) do
-    println("hello from thread $(Threads.threadid())")
-end
+rt1 = @on s1 println("hello from thread $(Threads.threadid())")
+    
+
 
 
 rt1 = @on(s1) do

@@ -133,6 +133,7 @@ macro repeat(name, ex, fx=:())
     end
 end
 
+# replace @spawn with @async based on kwarg
 macro asyncrepeat(name, ex, fx=:())
     return quote
         axn = Action($name)
