@@ -15,31 +15,33 @@ using Sockets # maybe not
 #MAYBE: import Observables for compatibility?
 
 
-include("freqs.jl") # timing.jl?
+# include("timing.jl")
+include("nanos.jl") # timing.jl?
 export Nanos, now
 export nanos, micros, millis, secs
 export Hz, kHz, MHz, GHz
 
 
-include("signals.jl")
-export Signal # observable? # topic
+include("topics.jl")
+export Topic # observable? # topic
 
 
-include("actions.jl")
-export Action # ReactiveTask
-export @repeat #always, #loop, #spin
+include("reactions.jl")
+export Reaction # ReactiveTask
+export @loop #always, #loop, #spin
 export stop!
 export @on
 
+#TODO:
 #onany
 #onall
 
-#TODO: combine freqs and daemon into timings.jl
 include("daemon.jl") # timing.jl
 export @at
 
 # interfaces:
 # HID, Serial, TCP, UDP, Channels
+# accept, listen, read, write
 
 
 # Signals (construction, notification, value)

@@ -45,16 +45,16 @@ Base.show(io::IO, ::TaskDone)   = printcr(io, crayon"magenta", "[done]")
 
 ## ------------------------------------ Reactions ------------------------------------ ##
 
-mutable struct Action
+mutable struct Reaction
     name::String
     @atomic enabled::Bool
     task::Task
     #MAYBE: trigger::Any <- would allow stopping timers, removing signal conditions
-    Action(name) = new(name, true)
+    Reaction(name) = new(name, true)
 end
 
 
-function Base.show(io::IO, axn::Action)
+function Base.show(io::IO, axn::Reaction)
     print(io, "$(axn.name) - $(TaskState(axn))")
 end
 
@@ -64,7 +64,7 @@ end
 
 # is it allowed to run?
 isenabled(axn) = axn.enabled
-function stop!(axn::Action)
+function stop!(axn::Reaction)
     @atomic axn.enabled = false
     # @async Base.throwto(axn.task, InterruptException())
     return axn
@@ -75,7 +75,7 @@ end
 
 ## ------------------------------------ globals ------------------------------------ ##
 
-global index = Action[]
+global index = Reaction[]
 # list()
 # index
 # index by index or name
@@ -110,7 +110,7 @@ end
 
 macro repeat(name, ex, fx=:())
     return quote
-        axn = Action($name)
+        axn = Reaction($name)
 
         axn.task = @spawn begin
             try
@@ -136,7 +136,7 @@ end
 # replace @spawn with @async based on kwarg
 macro asyncrepeat(name, ex, fx=:())
     return quote
-        axn = Action($name)
+        axn = Reaction($name)
 
         axn.task = @async begin
             try

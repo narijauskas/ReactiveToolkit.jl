@@ -1,6 +1,8 @@
 import Base: isless
 import Base: *, +, -, /
 
+# nanos are base type
+# add functionality to convert to Unitful units?
 
 #------------------------------------ encoding system time ------------------------------------#
 
