@@ -340,3 +340,196 @@ v_ref[1] = max.(v_ref[1], 0) # saturate bottom
 v_ref[1] = min.(v_ref[1], 900) # saturate top
 
 V_REF[][6:10,1:10] = Int.(ceil.(v_ref[1]))
+
+
+
+
+## ------------------------------------ other ------------------------------------ ##
+
+timingdaemon # stissue taskdaemon with tree sort and smarter sleep
+observabledaemon # translate to makie, does everything looplocal, single-threaded? ObservableTopic
+
+
+## ------------------------------------ DAQ ------------------------------------ ##
+# struct DAQ
+#     port?
+#     topics?
+# end
+
+@topic pwm_freq=5u"kHz"
+
+@on pwm_freq begin
+    val = round(UInt16, pwm_freq[] |> u"Hz" |> ustrip)
+    write(daq, "SET PWM_FREQ $val")
+end
+
+
+# how to achieve thread-safe, thread-efficient I/O?
+# interfaces have read/write locks?
+# maybe have global management of threadpool via @threadcall?
+
+
+# Port/Link/Interface/IO/Channel/Hook/Transfer/Translate/Lane/Attach
+ROSInterface()
+SerialInterface()
+# ObservableLink
+
+# LinkROS
+
+@topic vref=0.0
+
+
+RecvHID
+SendHID
+
+roscore = ROSCore(...)
+SendROS(roscore, :reference, Float32) # publish to rostopic
+RecvROS(roscore, :reference, Float32) # subscribe to rostopic, react on callback
+LinkROS(roscore, :reference, Float32) # publish & subscribe - effectively try to match state
+
+vref |> LinkROS(:reference, Float32) # vref will publish/subscribe to :reference ROStopic, react to changes
+vref |> LinkHID(dcus[1], :vref, UInt16) # how to set one-way?
+
+hid_send(mcu1, :vref, UInt16) # how does this appear on micro?
+ros_send()
+rossend(roscore, :rostopic, Float32)
+
+
+
+# micro
+RTkHID.send(:vref, )
+
+## ------------------------------------ UDP/Interfaces ------------------------------------ ##
+#= Interface API
+Interfaces handle their own control flow, so we treat them as pipes.
+send(...) - transfer a packet to the interface
+recv(...) - transfer a packet from the interface
+send/recv - transfers a packet to/from interface
+
+# close()
+# open()/connect()/join()
+
+abstract type Encoding end
+encoded as string by default?
+encode(T, ...)/decode(T, ...) - define (de)serialization for packet encoding T
+
+=#
+
+using Base.Threads: @spawn
+
+using Sockets
+
+using Sockets
+group = ip"228.5.6.7"
+socket = Sockets.UDPSocket()
+bind(socket, ip"0.0.0.0", 6789)
+join_multicast_group(socket, group)
+tk = @spawn while isopen(socket)
+    println(repeat(recv(socket)|>String, 3))
+end
+leave_multicast_group(socket, group)
+close(socket)
+
+##
+map(1:100) do i
+    tk = @async String(recv(socket))
+    yield()
+    t = @elapsed begin
+        send(socket, group, 6789, "msg: $i")
+        msg = fetch(tk)
+    end
+    return (msg,t)
+end
+##
+using UUIDs
+UUIDs.uuid4()
+x = Topic{Int}(0)
+map(1:100) do i
+    tk = @async recv(x)
+    yield()
+    t = @elapsed begin
+        x[] = i
+        msg = fetch(tk)
+    end
+end
+
+##
+
+using Sockets
+group = ip"228.5.6.7"
+sock = Sockets.UDPSocket()
+send(socket, group, 6789, "swag");
+close(sock)
+
+msg = Topic{String}("hello")
+msg = Topic("hello")
+N = Topic{Int}(3)
+
+@topic msg = "hello"
+@topic n = 3
+
+# @udp n = 3
+
+# how do we do map topics to ports?
+# can we have a peer-to-peer registry? UDPMesh.jl
+port = 6789
+group = ip"228.5.6.7"
+# host = ip"0.0.0.0" # all
+
+function udp_listener(group, port)
+    socket = Sockets.UDPSocket()
+    Sockets.bind(socket, ip"0.0.0.0", port)
+    join_multicast_group(socket, group)
+
+    tk = @loop "udp listener" begin
+        println(repeat(recv(socket)|>String, 3))
+    end
+
+end
+
+
+
+# one "DMX universe" or "network" is a UDP group
+# open handshake socket on port 0 or port 1 or something
+# declare topics, add to registry, assign ports
+
+# UUID<->IPv6 multicast group address?
+
+
+
+## can I break it?
+ts = Topic(0.1)
+go = Topic(true)
+z = Topic(rand(10000))
+
+tk0 = let tx = now()
+@spawn while go[]
+    dt = now()-tx
+    tx = now()
+    println(dt, length(z[]))
+    sleep(ts[])
+end
+end
+
+tk1 = map(1:100) do i
+    @spawn while go[]
+        z[][i] += sin(z[][i+1])
+        z[][i] -= cos(z[][i+1])
+        sleep(ts[])
+    end
+end
+
+tk2 = map(1:10) do i
+    @spawn while go[]
+        pop!(z[])
+        sleep(ts[])
+    end
+end
+
+
+tk3 = map(1:10) do i
+    @spawn while go[]
+        push!(z[], rand())
+        sleep(ts[])
+    end
+end
