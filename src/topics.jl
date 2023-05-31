@@ -1,17 +1,20 @@
 abstract type AbstractTopic{T} end
 
+
 mutable struct Topic{T} <: AbstractTopic{T}
     @atomic v::T
-    @atomic t::Nano
+    @atomic t::Nanos
+    @atomic tlast::Nanos
+    @atomic throttle::Hz
     cond::Condition
-    Topic{T}(v0) where {T} = new(v0, now(), Condition())
+    Topic{T}(v0) where {T} = new(v0, now(), now(), MHz(10), Condition())
 end
 
 Topic(v0::T) where {T} = Topic{T}(v0)
 Topic{T}(v0) where {T <: Topic} = @error "cannot create Topics of Topics"
 Topic{T}() where {T} = @error "Topics must have a value"
 
-
+#TODO: register(x, name)
 #------------------------------------ read/write functionality ------------------------------------#
 
 """

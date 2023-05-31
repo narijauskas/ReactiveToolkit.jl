@@ -4,6 +4,7 @@ using Crayons
 # printgr(s) = print(crayon"grey", s, crayon"default")
 printcr(c::Crayon, xs...) = printcr(stdout::IO, c, xs...)
 printcr(io::IO, c::Crayon, xs...) = print(io, crayon"bold", c, xs..., crayon"default", crayon"!bold")
+#TODO: import from PRONTO
 
 # printgr(xs...) = printgr(stdout::IO, xs...)
 # printgr(xs...) = print(crayon"gray", xs..., crayon"default")
@@ -22,8 +23,8 @@ export nanos, micros, millis, seconds
 export Hz, kHz, MHz, GHz
 
 
-# include("topics.jl")
-# export Topic # observable? # topic
+include("topics.jl")
+export Topic # observable? # topic
 
 # include("reactions.jl")
 # export Reaction # ReactiveTask

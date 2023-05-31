@@ -46,3 +46,8 @@ sleep(0.1)
 
 
 #TODO: reactivity, @on
+
+## ------------------------------------ threading/races ------------------------------------ ##
+#FUTURE:
+# make a Topic{Vector}, try to simultaneously modify vector elements from multiple threads
+# eg. x[][i] = v

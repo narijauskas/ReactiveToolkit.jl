@@ -49,7 +49,7 @@ mutable struct Reaction
     name::String
     @atomic enabled::Bool
     task::Task
-    #MAYBE: trigger::Any <- would allow stopping timers, removing signal conditions
+    #MAYBE: trigger::Any <- eg. Condition. Would allow stopping timers, removing signal conditions, interupting wait?
     Reaction(name) = new(name, true)
 end
 
@@ -64,9 +64,10 @@ end
 
 # is it allowed to run?
 isenabled(axn) = axn.enabled
-function stop!(axn::Reaction)
+function kill!(axn::Reaction)
     @atomic axn.enabled = false
     # @async Base.throwto(axn.task, InterruptException())
+    # some kind of yieldto?
     return axn
 end
 
@@ -76,6 +77,9 @@ end
 ## ------------------------------------ globals ------------------------------------ ##
 
 global index = Reaction[]
+#TODO: const
+#TODO: direct getters/setters
+
 # list()
 # index
 # index by index or name
@@ -108,7 +112,7 @@ end
 
 ## ------------------------------------ macro ------------------------------------ ##
 
-macro repeat(name, ex, fx=:())
+macro loop(name, ex, fx=:())
     return quote
         axn = Reaction($name)
 
@@ -133,8 +137,8 @@ macro repeat(name, ex, fx=:())
     end
 end
 
-# replace @spawn with @async based on kwarg
-macro asyncrepeat(name, ex, fx=:())
+#FUTURE: replace @spawn with @async based on kwarg
+macro asyncloop(name, ex, fx=:())
     return quote
         axn = Reaction($name)
 
@@ -169,12 +173,14 @@ end
 # @on x ex
 # @on x "name" ex
 
-
-
 macro on(x, ex)
     name = "on $x"
+    @on(x, name, ex)
+end
+
+macro on(x, name::String, ex)
     return quote
-        @repeat $name begin
+        @loop $name begin
             wait($(esc(x)))
             $(esc(ex))
         end # no finalizer
