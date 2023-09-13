@@ -13,14 +13,15 @@ TaskState(::Nothing) = NoTask()
 TaskState(x) = istaskfailed(x.task) ? TaskFailed() : istaskdone(x.task) ? TaskDone() : TaskActive()
 isactive(x) = TaskState(x) isa TaskActive
 
-Base.show(io::IO, ::NoTask)     = print(io, "[no task]" |> crayon"bold" |> crayon"black")
-Base.show(io::IO, ::TaskActive) = print(io, "[active]" |> crayon"bold" |> crayon"yellow")
-Base.show(io::IO, ::TaskFailed) = print(io, "[failed]" |> crayon"bold" |> crayon"red")
-# Base.show(io::IO, ::TaskDone)   = printcr(io, crayon"blue",   "[done]")
-Base.show(io::IO, ::TaskDone)   = print(io, "[done]" |> crayon"bold" |> crayon"blue")
+show(io::IO, ::NoTask)     = print(io, "[no task]" |> crayon"bold" |> crayon"black")
+show(io::IO, ::TaskActive) = print(io, "[active]"  |> crayon"bold" |> crayon"yellow")
+show(io::IO, ::TaskFailed) = print(io, "[failed]"  |> crayon"bold" |> crayon"red")
+show(io::IO, ::TaskDone)   = print(io, "[done]"    |> crayon"bold" |> crayon"blue")
+## ------------------------------------ Conditions ------------------------------------ ##
 
-
-
+struct NoCondition end #TODO: rename External
+const ConditionUnion = Union{Threads.Condition, Condition, NoCondition}
+#FUTURE: Have a RTkCondition type that holds upstreams for unlinking when task is done
 
 # struct KillTaskException <: Exception end
 
@@ -28,22 +29,13 @@ Base.show(io::IO, ::TaskDone)   = print(io, "[done]" |> crayon"bold" |> crayon"b
 # Wrap *any* code into an infinite while loop scheduled to run forever on any available thread.
 # This is a feature.
 
-# struct ExternalCondition
-#     @atomic enabled::Bool
-# end
-# ExternalCondition() = ExternalCondition(true)
-# wait(x::ExternalCondition) = isenabled(x) ? nothing : throw(KillTaskException())
-
-struct NoCondition end
-wait(::NoCondition) = nothing
-const ConditionUnion = Union{Threads.Condition, Condition, NoCondition}
-
 mutable struct Loop
     name::String
     condition::ConditionUnion
-    @atomic enabled::Bool #MAYBE: redundant?
+    @atomic enabled::Bool
     #MAYBE: @atomic n_calls
     #MAYBE: @atomic t_last
+    #MAYBE: limit::Nano # throttle
     task::Task
     Loop(name, cond) = new(name, cond, true)
 end
@@ -56,20 +48,19 @@ end
 function show(io::IO, ::MIME"text/plain", loop::Loop)
     print(io, loop, " - $(TaskState(loop))")
 end
+
+iscompact(io) = get(io, :compact, false)::Bool
+idstring(loop::Loop) = idstring(loop.task)
+idstring(task::Task) = string(convert(UInt, pointer_from_objref(task)), base = 60)
+# idstring(task::Task) = "@0x$(string(convert(UInt, pointer_from_objref(task)), base = 16, pad = Sys.WORD_SIZE>>2))"
 # Base.show(io::IO, loop::Loop) = print(io, "\"$(loop.name)\" ", idstring(loop), " - ", repr(TaskState(loop)))
 # Base.show(io::IO, loop::Loop) = print(io, idstring(loop), " \"$(loop.name)\"")
 # Base.show(io::IO, loop::Loop) = print(io, "\"$(loop.name)\" ", idstring(loop))
 
 
-iscompact(io) = get(io, :compact, false)::Bool
+isenabled(x) = isequal(x.enabled, true)
 
-idstring(loop::Loop) = idstring(loop.task)
-idstring(task::Task) = string(convert(UInt, pointer_from_objref(task)), base = 60)
-# idstring(task::Task) = "@0x$(string(convert(UInt, pointer_from_objref(task)), base = 16, pad = Sys.WORD_SIZE>>2))"
-
-kill(loop::Loop) = (kill!(loop); return nothing)
-
-function kill!(loop::Loop)
+function kill(loop::Loop)
     @atomic loop.enabled = false
     if !isactive(loop)
         rtk_warn("$loop is not active")
@@ -88,12 +79,8 @@ function kill!(loop::Loop)
         # notify(loop, KillTaskException(); error = true) # force waiting tasks to quit
         # could alternatively notify values to get fine grained wait behavior
     end
-    yield() # let the task quit, messages print
-    return loop
+    yield() # maybe. let the task quit, messages print
 end
-
-isenabled(x) = isequal(x.enabled, true)
-
 
 function wait(loop::Loop)
     loop.condition isa NoCondition && return
@@ -110,6 +97,45 @@ function notify(loop::Loop, arg=nothing; kw...)
 end
 
 ## ------------------------------------ macro ------------------------------------ ##
+
+macro loop(args...)
+    _loop(args...)
+end
+
+_loop(name, loop)               = _loop(name, NoCondition(), :(), loop, :())
+_loop(name, init, loop, final)  = _loop(name, NoCondition(), init, loop, final)
+_loop(name, cond, loop)         = _loop(name, cond, :(), loop, :())
+
+function _loop(name, cond, init_ex, loop_ex, final_ex)
+    quote
+        local loop = Loop($name, $cond)
+        loop.task = @spawn begin
+            try
+                rtk_info("starting $loop")
+                $(esc(init_ex)) # <- user defined initializer
+                wait(loop)
+                while isenabled(loop)
+                    $(esc(loop_ex)) # <- user defined loop
+                    yield()
+                    wait(loop)
+                end
+            catch e
+                rtk_warn("$loop failed")
+                rethrow(e)
+            finally
+                rtk_info("$loop finished")
+                #TODO: unlink conditions
+                $(esc(final_ex)) # <- user defined finalizer
+            end
+        end
+        rtk_register(loop) # add to global task index
+        yield() # allows the new loop task to run immediately. solid maybe
+        loop # macro results in loop object
+    end
+end
+
+
+
 
 # macro loop(name, ex) :(@loop $name () $ex ()) end
 # macro loop(name, cond, ex) :(@loop $name $cond () $ex ()) end
@@ -142,46 +168,21 @@ end
 #     end
 # end
 
-macro loop(name, loop_ex)
-    _loop(name, NoCondition(), :(), loop_ex, :())
-end
 
-macro loop(name, init_ex, loop_ex, final_ex)
-    _loop(name, NoCondition(), init_ex, loop_ex, final_ex)
-end
 
-macro loop(name, cond, init_ex, loop_ex, final_ex)
-    _loop(name, cond, init_ex, loop_ex, final_ex)
-end
+# macro loop(name, loop_ex)
+#     _loop(name, NoCondition(), :(), loop_ex, :())
+# end
 
-macro loop(name, cond, loop_ex)
-    _loop(name, cond, :(), loop_ex, :())
-end
+# macro loop(name, init_ex, loop_ex, final_ex)
+#     _loop(name, NoCondition(), init_ex, loop_ex, final_ex)
+# end
 
-function _loop(name, cond, init_ex, loop_ex, final_ex)
-    quote
-        local loop = Loop($name, $cond)
-        loop.task = @spawn begin
-            try
-                rtk_info("starting $loop")
-                $(esc(init_ex)) # <- user defined initializer
-                wait(loop)
-                while isenabled(loop)
-                    $(esc(loop_ex)) # <- user defined loop
-                    yield()
-                    wait(loop)
-                end
-            catch e
-                rtk_warn("$loop failed")
-                rethrow(e)
-            finally
-                rtk_info("$loop finished")
-                #TODO: unlink conditions
-                $(esc(final_ex)) # <- user defined finalizer
-            end
-        end
-        rtk_register(loop) # add to global task index
-        yield() # allows the new loop task to run immediately. solid maybe
-        loop # macro results in loop object
-    end
-end
+# macro loop(name, cond, init_ex, loop_ex, final_ex)
+#     _loop(name, cond, init_ex, loop_ex, final_ex)
+# end
+
+# macro loop(name, cond, loop_ex)
+#     _loop(name, cond, :(), loop_ex, :())
+# end
+

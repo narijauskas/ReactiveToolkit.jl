@@ -203,9 +203,19 @@ macro at(hz, name, ex)
 end
 
 
-# # @at hz ex
-# @at hz "name" ex
 
+macro every(args...); _every(args...); end
+_every(dt, loop) = _every(dt, "@every $dt", :(), loop, :())
+_every(dt, name, loop) = _every(dt, name, :(), loop, :())
+_every(dt, init, loop, final) = _every(dt, "@every $dt", init, loop, final)
+
+function _every(dt, name, init, loop, final)
+    return quote
+        timer = Topic(Nano($dt))
+        rtk_schedule(timer)
+        @on timer $name $(esc(init)) $(esc(loop)) $(esc(final))
+    end
+end
 
 
 macro at(hz, ex) :() end

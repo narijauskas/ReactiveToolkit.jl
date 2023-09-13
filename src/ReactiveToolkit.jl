@@ -1,97 +1,76 @@
 module ReactiveToolkit
 
 using Crayons
-# printgr(s) = print(crayon"grey", s, crayon"default")
-printcr(c::Crayon, xs...) = printcr(stdout::IO, c, xs...)
-printcr(io::IO, c::Crayon, xs...) = print(io, crayon"bold", c, xs..., crayon"default", crayon"!bold")
-#TODO: import from PRONTO
+using Base.Threads: @spawn, Condition
+using Unitful
+
+import Base: show
+import Base: isless, *, +, -, /
+import Base: sleep
+import Base: wait, notify
+import Base: kill
+
+# a representation of time
+include("nanos.jl")
+export now
+export nanos, micros, millis, seconds # for now
+# export Nano
+
+# infinite while loops with extra steps
+include("loops.jl")
+export @loop
+
+# sharing data between tasks
+include("topics.jl")
+export Topic
+export @on
+# export @topic
+#MAYBE: onall
 
 
-# as_emph(str) = crayon"emph" * str * crayon"!emph"
+# include("timing.jl")
+include("scheduling.jl")
+export @every
+#FUTURE: @in
+
+
+
+
+
+
+
+
 
 CR_GRAY = crayon"black"
 CR_BOLD = crayon"bold"
 CR_INFO = crayon"bold"*crayon"magenta"
 CR_WARN = crayon"bold"*crayon"yellow"
 CR_ERR  = crayon"bold"*crayon"red"
-# printgr(xs...) = printgr(stdout::IO, xs...)
-# printgr(xs...) = print(crayon"gray", xs..., crayon"default")
-
-import Base: show, wait, notify, kill
-
-using Base.Threads: @spawn, Condition
-using Sockets # maybe not
-
-#MAYBE: import Observables for compatibility? ReactiveToolkitObservablesExt?
-#MAYBE: using Unitful # add compatibility with types
-#MAYBE: using Dates # add compatibility with types
-
-# infinite while loops with extra steps
-include("loops.jl")
-export @loop
-
-
-include("nanos.jl") # temporary?
-
-include("topics.jl")
-export @topic, Topic
-export @on
-#TODO: onany
-#TODO: onall
-
-
-# include("sharing.jl")
-# export @shared, Shared
-# export @on
-
-
-include("timing.jl")
-export now
-export @at
-# export nanos, micros, millis, secs
-# export Hz, kHz, MHz, GHz
-# export Nanos
-
-
 
 #TODO: fully implement this, move to submodule
-rtk_info(str...) = println(repeat([""], 16)..., "\r", CR_INFO("rtk> "), str...)
-rtk_warn(str...) = println(repeat([""], 16)..., "\r", CR_WARN("rtk:warn> "), str...)
+rtk_print(str...) = println(repeat([""], 16)..., "\r", str...)
+rtk_info(str...) = rtk_print(CR_INFO("rtk> "), str...)
+rtk_warn(str...) = rtk_print(CR_WARN("rtk:warn> "), str...)
 
-global const _INDEX = Loop[]
-global const _LOCK = ReentrantLock()
+global const INDEX = Loop[]
+global const LOCK = ReentrantLock()
 
 function rtk_register(loop)
-    global _LOCK
-    global _INDEX
-    lock(_LOCK) do
-        push!(_INDEX, loop)
+    global LOCK
+    global INDEX
+    lock(LOCK) do
+        push!(INDEX, loop)
     end
     nothing
 end
 
-rtk_index() = (global _INDEX; return _INDEX)
-
-
-
-# include("nanos.jl") # timing.jl?
-# export Nanos, now
-# export nanos, micros, millis, seconds
-# export Hz, kHz, MHz, GHz
-
-
-# include("reactions.jl")
-# # export Reaction # ReactiveTask
-# export @loop # always, repeat, spin
-# export @on
-# export kill! # kill, kill!, stop
-
-
-# include("daemon.jl") # timing.jl
-# export @at
-
+export rtk_index
+rtk_index() = (global INDEX; return INDEX)
 
 # include("utils.jl")
+# provides tools to list and manage tasks, topics and interfaces
+# someday: generate system graph (at least for run triggering)
+# someday: get stats, like total number of calls, etc.
 # export rtk_info
 # export rtk_warn
 # export rtk_status
@@ -99,40 +78,18 @@ rtk_index() = (global _INDEX; return _INDEX)
 # export rtk_tasks
 # export rtk_topics
 
-#TODO:
-# include("globals.jl")
-# provides tools to list and manage tasks, topics and interfaces
-# someday: generate system graph (at least for run triggering)
-# maybe: utils.jl
 
-#TODO: close(topic)
+
+#MAYBE: close(topic)
 
 
 
 
 
-# Option 1: one condition per task, multiple conditions per topic/timer/etc.
-# simpler to kill, harder to implement
-# possibly less efficient
-# kill:
-# notify(cond; error=true)
 
 
-#= Option 2:
-    one condition per topic/timer/etc.
 
-    to kill a task, need to support
-    # notify(cond, CHECK_TASK)
-    # notify(cond, KILL_TASK)
 
-    function wait(loop::Loop)
-        val = lock(loop.cond.lock) do
-            wait(loop.cond)
-        end
-        val == CHECK_TASK && wait(loop)
-        val == KILL_TASK && error("task killed by user")
-    end
-=#
 
 
 
@@ -292,5 +249,5 @@ close(sock)
     https://github.com/JuliaLang/julia/issues/964
     https://docs.julialang.org/en/v1/manual/types/#Type-Declarations-1
 =#
-
+Topic()
 end # module

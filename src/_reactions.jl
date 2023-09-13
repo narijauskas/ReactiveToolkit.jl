@@ -1,37 +1,37 @@
 
 ## ------------------------------------ task state ------------------------------------ ##
 
-abstract type TaskState end
+# abstract type TaskState end
 
-# there is no task
-struct NoTask <: TaskState end
+# # there is no task
+# struct NoTask <: TaskState end
 
-# task is currently runnable
-struct TaskActive <: TaskState end
+# # task is currently runnable
+# struct TaskActive <: TaskState end
 
-# task has crashed - see x.task for details
-struct TaskFailed <: TaskState end
+# # task has crashed - see x.task for details
+# struct TaskFailed <: TaskState end
 
-# task has completed - most likely stopped manually via kill!(x)
-struct TaskDone <: TaskState end
+# # task has completed - most likely stopped manually via kill!(x)
+# struct TaskDone <: TaskState end
 
-TaskState(::Nothing) = NoTask()
+# TaskState(::Nothing) = NoTask()
 
-function TaskState(x)
-    if istaskfailed(x.task)
-        return TaskFailed()
-    elseif istaskdone(x.task)
-        return TaskDone()
-    else
-        return TaskActive()
-    end
-end
+# function TaskState(x)
+#     if istaskfailed(x.task)
+#         return TaskFailed()
+#     elseif istaskdone(x.task)
+#         return TaskDone()
+#     else
+#         return TaskActive()
+#     end
+# end
 
 
-Base.show(io::IO, ::NoTask) = printcr(io, crayon"dark_gray", "[no task]")
-Base.show(io::IO, ::TaskActive) = printcr(io, crayon"green", "[active]")
-Base.show(io::IO, ::TaskFailed) = printcr(io, crayon"red", "[failed]")
-Base.show(io::IO, ::TaskDone)   = printcr(io, crayon"magenta", "[done]")
+# Base.show(io::IO, ::NoTask) = printcr(io, crayon"dark_gray", "[no task]")
+# Base.show(io::IO, ::TaskActive) = printcr(io, crayon"green", "[active]")
+# Base.show(io::IO, ::TaskFailed) = printcr(io, crayon"red", "[failed]")
+# Base.show(io::IO, ::TaskDone)   = printcr(io, crayon"magenta", "[done]")
 
 
 
@@ -108,36 +108,36 @@ end
 
 
 # graph!(ax)
-info(msg) = println(stdout, "\n", crayon"magenta", crayon"bold", "RTk> ", crayon"default", crayon"!bold", msg)
+# info(msg) = println(stdout, "\n", crayon"magenta", crayon"bold", "RTk> ", crayon"default", crayon"!bold", msg)
 
 ## ------------------------------------ macro ------------------------------------ ##
 
-macro loop(name, ex, fx=:())
-    return quote
-        axn = Reaction($name)
+# macro loop(name, ex, fx=:())
+#     return quote
+#         axn = Reaction($name)
 
-        axn.task = @spawn begin
-            try
-                # println(stdout, "\n", crayon"cyan", "RTk> ", crayon"default", "$($name) starting")
-                info("$($name) starting")
-                while isenabled(axn)
-                    $(esc(ex)) # escape the expression
-                    yield()
-                end
-            catch e
-                rethrow(e)
-            finally
-                # println(stdout, "\n", crayon"cyan", "RTk> ", crayon"default", "$($name) stopped")
-                info("$($name) stopped")
-                $(esc(fx))
-            end
-        end
+#         axn.task = @spawn begin
+#             try
+#                 # println(stdout, "\n", crayon"cyan", "RTk> ", crayon"default", "$($name) starting")
+#                 info("$($name) starting")
+#                 while isenabled(axn)
+#                     $(esc(ex)) # escape the expression
+#                     yield()
+#                 end
+#             catch e
+#                 rethrow(e)
+#             finally
+#                 # println(stdout, "\n", crayon"cyan", "RTk> ", crayon"default", "$($name) stopped")
+#                 info("$($name) stopped")
+#                 $(esc(fx))
+#             end
+#         end
 
-        push!(ReactiveToolkit.index, axn)
-        yield()
-        axn
-    end
-end
+#         push!(ReactiveToolkit.index, axn)
+#         yield()
+#         axn
+#     end
+# end
 
 #FUTURE: replace @spawn with @async based on kwarg
 macro asyncloop(name, ex, fx=:())
@@ -193,15 +193,15 @@ end
 #     @loop $name cond () $(esc(ex)) ()
 # end
 
-macro on(x, ex)
-    name = "@on $x"
-    return quote
-        @loop $name begin
-            wait($(esc(x)))
-            $(esc(ex))
-        end # no finalizer
-    end
-end
+# macro on(x, ex)
+#     name = "@on $x"
+#     return quote
+#         @loop $name begin
+#             wait($(esc(x)))
+#             $(esc(ex))
+#         end # no finalizer
+#     end
+# end
 
 
 
