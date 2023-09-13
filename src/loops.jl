@@ -64,22 +64,19 @@ function kill(loop::Loop)
     @atomic loop.enabled = false
     if !isactive(loop)
         rtk_warn("$loop is not active")
-        return loop
-    end
-    if loop.condition isa NoCondition
+    elseif loop.condition isa NoCondition
         rtk_warn("$loop is waiting on an external condition to complete. ",
             "It will not be rescheduled, but will remain active until ",
             "the task encounters an error or the condition is met once again.")
             # "consider implementing a LoopCondition to automate this behavior"
-    # else if loop.condition isa CustomCondition
+    # elseif loop.condition isa CustomCondition
         # kill!(loop.condition) # user defined custom behavior
     else
         rtk_info("sending stop signal to $loop")
         notify(loop)
-        # notify(loop, KillTaskException(); error = true) # force waiting tasks to quit
-        # could alternatively notify values to get fine grained wait behavior
     end
     yield() # maybe. let the task quit, messages print
+    nothing
 end
 
 function wait(loop::Loop)

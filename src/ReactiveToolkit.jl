@@ -19,6 +19,7 @@ export nanos, micros, millis, seconds # for now
 # infinite while loops with extra steps
 include("loops.jl")
 export @loop
+# tk = @loop "uncomment to segfault julia" sleep(1)
 
 # sharing data between tasks
 include("topics.jl")
@@ -29,7 +30,7 @@ export @on
 
 
 # include("timing.jl")
-include("scheduling.jl")
+include("daemon.jl")
 export @every
 #FUTURE: @in
 
@@ -249,5 +250,4 @@ close(sock)
     https://github.com/JuliaLang/julia/issues/964
     https://docs.julialang.org/en/v1/manual/types/#Type-Declarations-1
 =#
-Topic()
 end # module
