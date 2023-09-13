@@ -9,14 +9,14 @@ using DataStructures
 # for now, use `naive` implementation from SRTxBase
 
 # type alias
-# Timer = Signal{Tuple{Hz, Nano}}
+# Timer = Topic{Tuple{Hz, Nano}}
 
 mutable struct Daemon
-    # timers::Vector{Signal}
+    # timers::Vector{Topic}
     # @atomic enabled::Bool
-    timers::PriorityQueue{Signal{Nano}, Nano}
+    timers::PriorityQueue{Topic{Nanos}, Nanos}
     lock::ReentrantLock # for timers or 
-    self::Union{Action,Nothing} # store the daemon's task (to tell if it's running/crashed/etc.)
+    self::Union{Reaction,Nothing} # store the daemon's task (to tell if it's running/crashed/etc.)
 end
 
 #TODO: long form, list signals
@@ -24,7 +24,7 @@ function Base.show(io::IO, ::Daemon)
     print(io, "RTk.daemon")
 end
 
-global const daemon = Daemon(PriorityQueue{Signal{Nano}, Nano}(), ReentrantLock(), nothing)
+global const daemon = Daemon(PriorityQueue{Topic{Nanos}, Nanos}(), ReentrantLock(), nothing)
 
 function loop(dmn)
     lock(dmn.lock) do
@@ -69,13 +69,12 @@ function loop(dmn)
 end
 
 #TODO:
-#err: Y2KException() -> wait for now() to wrap
-
+struct Y2KException <: Exception end # -> wait for now() to wrap
 
 
 #---------------------- other sleep functions ----------------------#
 
-Base.sleep(ns::Nano) = sleep(ns.ns/1e9)
+Base.sleep(ns::Nanos) = sleep(ns.ns/1e9)
 
 #TODO: update for Nanos
 
@@ -106,7 +105,7 @@ function stop!(dmn::Daemon)
     unlock(dmn.lock)
 end
 
-# Timer(hz::Hz) = Signal(Nano(hz))
+# Timer(hz::Hz) = Topic(Nanos(hz))
 
 #assume lock is already held
 function _cycle(dmn::Daemon)
@@ -114,7 +113,7 @@ function _cycle(dmn::Daemon)
         @atomic dmn.self.enabled = false
     elseif isnothing(dmn.self) || TaskActive() != TaskState(dmn.self)
         # start daemon
-        dmn.self = @asyncrepeat "daemon" loop(dmn)
+        dmn.self = @asyncloop "daemon" loop(dmn)
         # dmn.self.task.sticky = false
     else
         nothing
@@ -174,12 +173,12 @@ end
 macro at(hz, ex)
     name = "at $hz"
     return quote
-        ns = Nano($hz)
+        ns = Nanos($hz)
         # make timer -> attatch to taskdaemon (lock, start/stop)
-        timer = Signal(ns)
+        timer = Topic(ns)
         add!(ReactiveToolkit.daemon, timer)
 
-        @repeat $name begin
+        @loop $name begin
             wait(timer)
             $(esc(ex))
         end begin
@@ -189,5 +188,34 @@ macro at(hz, ex)
     end
 end
 
+
+macro at(hz, ex)
+    
+end
+
+macro at(hz, name, ex)
+    return quote
+        timer = Topic(Nanos($hz))
+        rtk_add(timer)
+        @loop $name $(esc(ex)) rtk_rm(timer)
+        @on timer $name $(esc(ex))
+    end
+end
+
+
 # # @at hz ex
 # @at hz "name" ex
+
+
+
+macro at(hz, ex) :() end
+macro at(hz, name, ex) :() end
+macro at(hz, init, loop, final) :() end
+macro at(hz, name, init, loop, final)
+    return quote
+        timer = Topic(Nanos($hz))
+        rtk_add(timer)
+        @loop $name $(esc(ex)) rtk_rm(timer)
+        @on timer $name $(esc(ex))
+    end
+end

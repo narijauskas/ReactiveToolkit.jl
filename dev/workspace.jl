@@ -533,3 +533,29 @@ tk3 = map(1:10) do i
         sleep(ts[])
     end
 end
+
+
+
+bar(x::typeof(1.0u"s")) = "Float seconds"
+bar(x::Quantity) = bar(x|>Float64|>u"s")
+bar(x) = "nope"
+
+
+T = typeof(1.0u"s")
+ST = supertype(T)
+SST = supertype(ST)
+
+
+
+Hz
+kHz
+MHz
+
+nanos
+micros
+millis
+seconds
+
+@in secs(1) println("hello!")
+@in seconds(1) println("hello!")
+@in 1u"s" println("hello!")

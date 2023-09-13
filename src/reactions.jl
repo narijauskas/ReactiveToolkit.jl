@@ -108,7 +108,7 @@ end
 
 
 # graph!(ax)
-
+info(msg) = println(stdout, "\n", crayon"magenta", crayon"bold", "RTk> ", crayon"default", crayon"!bold", msg)
 
 ## ------------------------------------ macro ------------------------------------ ##
 
@@ -118,7 +118,8 @@ macro loop(name, ex, fx=:())
 
         axn.task = @spawn begin
             try
-                println(stdout, "\n", crayon"cyan", "RTk> ", crayon"default", "$($name) starting")
+                # println(stdout, "\n", crayon"cyan", "RTk> ", crayon"default", "$($name) starting")
+                info("$($name) starting")
                 while isenabled(axn)
                     $(esc(ex)) # escape the expression
                     yield()
@@ -126,7 +127,8 @@ macro loop(name, ex, fx=:())
             catch e
                 rethrow(e)
             finally
-                println(stdout, "\n", crayon"cyan", "RTk> ", crayon"default", "$($name) stopped")
+                # println(stdout, "\n", crayon"cyan", "RTk> ", crayon"default", "$($name) stopped")
+                info("$($name) stopped")
                 $(esc(fx))
             end
         end
@@ -144,7 +146,7 @@ macro asyncloop(name, ex, fx=:())
 
         axn.task = @async begin
             try
-                println(stdout, "\n", crayon"cyan", "RTk> ", crayon"default", "$($name) starting")
+                println(stdout, "\n", crayon"magenta", crayon"bold", "RTk> ", crayon"default", "$($name) starting")
                 while isenabled(axn)
                     $(esc(ex)) # escape the expression
                     yield()
@@ -152,7 +154,7 @@ macro asyncloop(name, ex, fx=:())
             catch e
                 rethrow(e)
             finally
-                println(stdout, "\n", crayon"cyan", "RTk> ", crayon"default", "$($name) stopped")
+                println(stdout, "\n", crayon"magenta", crayon"bold", "RTk> ", crayon"default", "$($name) stopped")
                 $(esc(fx))
             end
         end
@@ -173,12 +175,26 @@ end
 # @on x ex
 # @on x "name" ex
 
-macro on(x, ex)
-    name = "on $x"
-    @on(x, name, ex)
-end
+# macro on(x, ex)
+#     name = "@on $x"
+#     @on(x, name, ex)
+# end
 
-macro on(x, name::String, ex)
+# macro on(x, name, ex)
+#     return quote
+#         @loop $name begin
+#             wait($(esc(x)))
+#             $(esc(ex))
+#         end # no finalizer
+#     end
+# end
+
+# macro on(x, name, ex)
+#     @loop $name cond () $(esc(ex)) ()
+# end
+
+macro on(x, ex)
+    name = "@on $x"
     return quote
         @loop $name begin
             wait($(esc(x)))
@@ -186,4 +202,7 @@ macro on(x, name::String, ex)
         end # no finalizer
     end
 end
+
+
+
 

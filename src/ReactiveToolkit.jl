@@ -6,45 +6,126 @@ printcr(c::Crayon, xs...) = printcr(stdout::IO, c, xs...)
 printcr(io::IO, c::Crayon, xs...) = print(io, crayon"bold", c, xs..., crayon"default", crayon"!bold")
 #TODO: import from PRONTO
 
+
+# as_emph(str) = crayon"emph" * str * crayon"!emph"
+
+CR_GRAY = crayon"black"
+CR_BOLD = crayon"bold"
+CR_INFO = crayon"bold"*crayon"magenta"
+CR_WARN = crayon"bold"*crayon"yellow"
+CR_ERR  = crayon"bold"*crayon"red"
 # printgr(xs...) = printgr(stdout::IO, xs...)
 # printgr(xs...) = print(crayon"gray", xs..., crayon"default")
 
+import Base: show
 
 using Base.Threads: @spawn, Condition
 using Sockets # maybe not
 
-#MAYBE: import Observables for compatibility? package extension?
+#MAYBE: import Observables for compatibility? ReactiveToolkitObservablesExt?
+#MAYBE: using Unitful # add compatibility with types
+#MAYBE: using Dates # add compatibility with types
+
+# infinite while loops with extra steps
+include("loops.jl")
+export @loop
+export kill! # stop?
 
 
-# include("timing.jl")
-include("nanos.jl") # timing.jl?
-export Nanos, now
-export nanos, micros, millis, seconds
-export Hz, kHz, MHz, GHz
-
+include("nanos.jl") # temporary?
 
 include("topics.jl")
-export Topic # observable? # topic
+export @topic, Topic
+export @on
+#TODO: onany
+#TODO: onall
+
+
+# include("sharing.jl")
+# export @shared, Shared
+# export @on
+
+
+include("timing.jl")
+export now
+export @at
+# export nanos, micros, millis, secs
+# export Hz, kHz, MHz, GHz
+# export Nanos
+
+
+
+
+# include("nanos.jl") # timing.jl?
+# export Nanos, now
+# export nanos, micros, millis, seconds
+# export Hz, kHz, MHz, GHz
+
 
 # include("reactions.jl")
-# export Reaction # ReactiveTask
+# # export Reaction # ReactiveTask
 # export @loop # always, repeat, spin
 # export @on
-# export stop! # kill, kill!, stop
+# export kill! # kill, kill!, stop
 
-#TODO:
-#onany
-#onall
 
 # include("daemon.jl") # timing.jl
 # export @at
 
+
+# include("utils.jl")
+# export rtk_info
+# export rtk_warn
+# export rtk_status
+# export rtk_loops
+# export rtk_tasks
+# export rtk_topics
 
 #TODO:
 # include("globals.jl")
 # provides tools to list and manage tasks, topics and interfaces
 # someday: generate system graph (at least for run triggering)
 # maybe: utils.jl
+
+#TODO: close(topic)
+
+
+
+
+
+# Option 1: one condition per task, multiple conditions per topic/timer/etc.
+# simpler to kill, harder to implement
+# possibly less efficient
+# kill:
+# notify(cond; error=true)
+
+
+#= Option 2:
+    one condition per topic/timer/etc.
+
+    to kill a task, need to support
+    # notify(cond, CHECK_TASK)
+    # notify(cond, KILL_TASK)
+
+    function wait(loop::Loop)
+        val = lock(loop.cond.lock) do
+            wait(loop.cond)
+        end
+        val == CHECK_TASK && wait(loop)
+        val == KILL_TASK && error("task killed by user")
+    end
+=#
+
+
+
+
+
+
+
+
+
+
+
 
 # interfaces:
 # HID, Serial, TCP, UDP, Channels
@@ -63,8 +144,6 @@ export Topic # observable? # topic
 # struct SRTxPacket end
 # Base.parse(::Type{SRTxPacket}, str::AbstractString) or decode(::Type{SRTxPacket}, bytes)
 
-
-#TODO: close(topic)
 
 # @loop "listener" begin
 #     pkt = split(recv(sock)) # wait for message

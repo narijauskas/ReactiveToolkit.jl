@@ -1,83 +1,119 @@
-# Observable are thread-safe, reactive data containers
-x::Observable{Int} = Observable(0)
 
-# read topic value
-y = sin(x[])
+using ReactiveToolkit
 
-# store new topic value
-x[] = 1
+## --------------------------- making topics --------------------------- ##
+# a thread-safe container
+# simple rule: only share data between tasks using topics
 
-# react to changes to topic
-@on x begin
-    println("x is now: $(x[])")
+@topic x # Topic{Any} with a value of nothing
+@topic x::Float64
+@topic x = 1
+@topic x::Float64 = 1
+x = Topic(1)
+x = Topic{Float64}(1)
+
+## --------------------------- using topics --------------------------- ##
+
+# topics can be used just like normal variables by using [] to get/set the value
+# this syntax should be very familiar to users of Observables.jl
+
+# use a value
+x[] isa Int
+
+# set a value
+x[] = 2
+
+
+## --------------------------- react to topics --------------------------- ##
+# topics have one more trick: we can react to changes
+
+@on x do_the_thing()
+@on (x,y,z) do_the_thing() # on x, y, or z
+@onany (x,y,z) do_the_thing()
+@onall (x,y,z) do_the_thing()
+
+
+## --------------------------- repeating tasks --------------------------- ##
+# we aren't limited to reactions - can repeat on time
+
+@at Hz(1)
+@every Hz(1)
+@every Minute(1)
+
+# --------------------------- one-shot tasks --------------------------- #
+# to run something once after a precise delay:
+
+@after now()
+@after Time("23:15:00")
+@after Minute(1)
+@after nanos(10)
+
+
+
+@at Time("23:15:00")
+@at now()
+
+@in Minute(1)
+@in nanos(10)
+
+
+# note: can always also use @spawn task() to just schedule and run task() immediately
+#=  can also use
+@in seconds(0)
+@at now()
+=#
+
+
+# --------------------------- advanced example --------------------------- #
+
+@after Minute(1) begin
+    i = 1
+    task = @every Second(1) println!("hello #$(i+=1)")
+    @after Second(10) kill!(task)
 end
 
-# update topic on regular intervals
-@every seconds(10) x[] += 1
+
+
+# --------------------------- custom functionality --------------------------- #
+# ie. roll your own scheduling
+
+@loop "name" begin
+    # code to repeat
+end begin
+    # finalizer
+end
 
 
 
 
+# for example, to create a simple serial monitor for debugging an Arduino:
 
-
-using LibSerialPort
 using RealtimeToolkit
-
-# very crude microcontroller IO
-x::Observable{UInt16} = Observable(0)
-x::Observable{UInt16} = Observable(0)
+using LibSerialPort
 
 
-serial = SerialPort("COM4")
-open(serial)
-
-@loop begin
-    isopen(serial) && error("serial port closed")
-    x[] = parse(UInt16, readline(serial))
-end begin #finalizer
-    isopen(serial) && close(serial)
-end
-
-@on u write(serial, "SET CH1.U $(u[])")
-
-
-let K = 1
-    @on x u[] = K*x[]
-end
-
-
-
-function MCUListener(port, mcuin, mcuout)
-    mcu_port = SerialPort(port)
-    open(mcu_port)
-
-    mcu_listener = @loop begin
-        isopen(mcu_port) && error("serial port closed")
-        mcuout[] = parse(UInt16, readline(mcu_port))
+function SerialMonitor(port::SerialPort)
+    @loop "serial monitor" begin # initializer
+        open(port)
+    end begin # loop
+        isopen(port) && error("serial port closed")
+        println(readline(port)) # readline waits for data, governs timing
     end begin #finalizer
-        isopen(mcu_port) && close(mcu_port)
-    end
-
-    mcu_writer = @on mcuin write(mcu_port, "SET CH1.U $(mcuin[])")
-    return mcu_listener, mcu_writer, mcu_port
-end
-
-
-ports = ["COM1", "COM2", "COM3"]
-inputs = [Observable{UInt16}(0), Observable{UInt16}(0), Observable{UInt16}(0)]
-outputs = [Observable{UInt16}(0), Observable{UInt16}(0), Observable{UInt16}(0)]
-for (port, input, output) in zip(ports, inputs, outputs)
-    MCUListener(port, input, output)
-end
-
-@onany inputs begin
-    x = collect(input[] for input in inputs)
-    us = K*x
-    for (output, u) in zip(outputs, us)
-        output[] = u
+        isopen(port) && close(port)
     end
 end
 
+SerialMonitor(x) = SerialMonitor(SerialPort(x))
+
+
+
+port = SerialPort("COM4")
+monitor = SerialMonitor(port)
+
+
+kill!(monitor)
+# or
+close(port)
 
 
 
@@ -85,31 +121,66 @@ end
 
 
 
-# useful for things like control loops
 
-@on mcu begin
-    x[] = parse(Float64, readline(serial))
+
+
+
+
+
+
+using Base.Threads
+using Base.Threads: @spawn
+
+function maketask()
+    cond = Threads.Condition()
+    fxn = ()->begin
+        for ix in 1:10
+            val = lock(cond.lock) do
+                wait(cond)
+            end
+            println("value: $val")
+        end
+    end
+    task = @spawn fxn()
+    return task, cond
 end
 
-@on x u[] = K*x[]
-
-@on u write(serial, "SET CH1.U $(u[])")
+tk, cond = maketask()
 
 
-
-@onany (a,b,c) begin
-    println("either a,b, or c has been updated")
+tk
+lock(cond.lock) do
+    notify(cond, "foo"; error=true)
 end
 
-@onall (a,b,c) begin
-    println("a,b, and c have all been updated at least once")
+notify(cond, "yeet")
+
+# on kill?
+notify(cond)
+notify(cond, STOP_TASK)
+notify(cond, STOP_TASK; error = true)
+
+
+
+
+function maketask()
+    cond = Threads.Condition()
+    fxn = ()->begin
+        for ix in 1:10
+            val = lock(cond.lock) do
+                wait(cond)
+            end
+            println("value: $val")
+        end
+    end
+    task = @spawn fxn()
+    return task, cond
 end
 
 
-
-function PrintServer(;repl_rate=Hz(60))
-    print_buffer = Signal{CircularBuffer{String}}()
+try
+    
+catch e
+    e isa KillTaskException
 end
 
-rtk_println() #
-rtk_print()
