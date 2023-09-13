@@ -41,7 +41,7 @@ link!(xs, cond) = foreach(x->link!(x, cond), xs)
 end
 
 function notify(x::AbstractTopic, arg=nothing; kw...)
-    sum(x.conditions) do cond
+    sum(x.conditions; init = 0) do cond
         lock(cond) do
             notify(cond, arg; kw...)
         end
@@ -63,7 +63,7 @@ function _on(x, name, init, loop, final)
     quote
         cond = Threads.Condition()
         link!($(esc(x)), cond) # x can be any iterable of topics
-        @loop $name cond $(esc(init)) $(esc(loop)) $(esc(final))
+        @loop $(esc(name)) cond $(esc(init)) $(esc(loop)) $(esc(final))
     end
 end
 

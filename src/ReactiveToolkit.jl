@@ -49,9 +49,10 @@ CR_WARN = crayon"bold"*crayon"yellow"
 CR_ERR  = crayon"bold"*crayon"red"
 
 #TODO: fully implement this, move to submodule
-rtk_print(str...) = println(repeat([""], 16)..., "\r", str...)
+rtk_print(str...) = println(repeat([""], 32)..., "\r", str...)
 rtk_info(str...) = rtk_print(CR_INFO("rtk> "), str...)
 rtk_warn(str...) = rtk_print(CR_WARN("rtk:warn> "), str...)
+rtk_err(str...) = rtk_print(CR_ERR("rtk:error> "), str...)
 
 global const INDEX = Loop[]
 global const LOCK = ReentrantLock()

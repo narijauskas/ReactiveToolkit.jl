@@ -50,7 +50,7 @@ function show(io::IO, ::MIME"text/plain", loop::Loop)
 end
 
 iscompact(io) = get(io, :compact, false)::Bool
-idstring(loop::Loop) = idstring(loop.task)
+idstring(loop::Loop) = isdefined(loop, :task) ? idstring(loop.task) : "???"
 idstring(task::Task) = string(convert(UInt, pointer_from_objref(task)), base = 60)
 # idstring(task::Task) = "@0x$(string(convert(UInt, pointer_from_objref(task)), base = 16, pad = Sys.WORD_SIZE>>2))"
 # Base.show(io::IO, loop::Loop) = print(io, "\"$(loop.name)\" ", idstring(loop), " - ", repr(TaskState(loop)))
@@ -72,7 +72,7 @@ function kill(loop::Loop)
     # elseif loop.condition isa CustomCondition
         # kill!(loop.condition) # user defined custom behavior
     else
-        rtk_info("sending stop signal to $loop")
+        rtk_info("$loop has been asked to stop")
         notify(loop)
     end
     yield() # maybe. let the task quit, messages print
@@ -105,7 +105,7 @@ _loop(name, cond, loop)         = _loop(name, cond, :(), loop, :())
 
 function _loop(name, cond, init_ex, loop_ex, final_ex)
     quote
-        local loop = Loop($name, $cond)
+        local loop = Loop($(esc(name)), $cond)
         loop.task = @spawn begin
             try
                 rtk_info("starting $loop")

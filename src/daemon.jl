@@ -57,7 +57,7 @@ function loop_daemon(dmn)
         if now() >= t_next
             dmn.timers[x] = now() + x[]
             notify(x)
-        elseif  now() + millis(2) < t_next
+        elseif  now() + millis(10) < t_next
             sleep(t_next-(now()+millis(1)))
             #elseif
             #YO: make OS-specific timer kernels: like microsleep on linux, 20ms tolerance on Windows
@@ -175,7 +175,7 @@ function _every(dt, name, init, loop, final)
         timer = Topic(Nano($dt))
         add!(ReactiveToolkit.DAEMON, timer)
         # rtk_schedule(timer)
-        @on timer $name $(esc(init)) $(esc(loop)) $_final
+        @on timer $(esc(name)) $(esc(init)) $(esc(loop)) $_final
     end
 end
 

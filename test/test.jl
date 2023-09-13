@@ -14,19 +14,32 @@ kill(tk)
 
 
 
-@every seconds(1) println("hello")
+@every seconds(0.5) println("hello")
 kill(ans)
 
 
 
+kill.(rtk_index())
 
 
-
-
+using Primes
 x = Topic(1)
 x[] = 1
-@on x "prime check" begin
+tk = @on x "prime check" begin
     isprime(x[]) && println("woah! $x is prime!")
 end
-@every millis(10) x[] += 1
-kill(ans)
+tk = @every millis(10) "timer 0" x[] += 1
+kill(tk)
+
+
+tks = map(1:100) do i
+    sleep(0.1)
+    @every millis(10) "timer $i" x[] += 1
+end
+
+kill.(tks)
+
+for tk in tks
+    sleep(0.05)
+    kill(tk)
+end
