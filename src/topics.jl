@@ -97,21 +97,54 @@ end
 # @on x ex
 # @on x "name" ex
 
+# macro on(x, name, init, loop, final)
+#     x = esc(x)
+#     init = esc(init)
+#     loop = esc(loop)
+#     final = esc(final)
+#     return quote
+#         cond = Threads.Condition()
+#         # push!($(x).cond, cond)
+#         # @loop $name cond $(init) $(loop) $(final)
+#         push!(($x).conditions, cond)
+#         @loop $name cond $init $loop $final
+#     end
+# end
+
+
+macro on(x, loop)
+    _on(x, "@on $x", :(), loop, :())
+end
+
+macro on(x, name, loop)
+    _on(x, name, :(), loop, :())
+end
+
+macro on(x, init, loop, final)
+    _on(x, "@on $x", init, loop, final)
+end
+
 macro on(x, name, init, loop, final)
-    return quote
+    _on(x, name, init, loop, final)
+end
+
+function _on(x, name, init, loop, final)
+    quote
         cond = Threads.Condition()
-        # push!($(x).cond, cond)
-        # @loop $name cond $(init) $(loop) $(final)
-        push!($(esc(x)).conditions, cond)
-        @loop $name cond $init $loop $final
+        link!($(esc(x)), cond) # x can be any iterable of topics
+        @loop $name cond $(esc(init)) $(esc(loop)) $(esc(final))
     end
 end
+
+link!(xs, cond) = foreach(x->push!(x.conditions, cond), xs)
+link!(x::Topic, cond) = push!(x.conditions, cond)
+
 
 # macro on(x, init, loop, final)
 #     name = "@on $x"
 #     :(@on $(esc(x)) $name $(esc(init)) $(esc(loop)) $(esc(final)))
 # end
-# macro on(x, name, ex) esc(:(@on $x $name () $ex ())) end
+# macro on(x, name, ex) :(@on $x $name () $ex ()) end
 # macro on(x, ex) esc(:(@on $x () $ex ())) end
 
 

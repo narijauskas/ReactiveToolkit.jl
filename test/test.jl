@@ -2,11 +2,11 @@ using ReactiveToolkit
 using MacroTools
 
 x = Topic()
+y = Topic()
 
-(@macroexpand @loop "name" () () ()) |> MacroTools.prettify
+tk = @on [x,y] println(y[])
 
-tasks = RTk.Loop[]
-tk = @loop "task name" () (sleep(1)) ()
-push!(tasks, tk)
+y[] = 3
+x[] = 1
 
-tk = @loop "task name" sleep(1)
+kill(tk)

@@ -17,7 +17,7 @@ CR_ERR  = crayon"bold"*crayon"red"
 # printgr(xs...) = printgr(stdout::IO, xs...)
 # printgr(xs...) = print(crayon"gray", xs..., crayon"default")
 
-import Base: show
+import Base: show, wait, notify, kill
 
 using Base.Threads: @spawn, Condition
 using Sockets # maybe not
@@ -29,7 +29,6 @@ using Sockets # maybe not
 # infinite while loops with extra steps
 include("loops.jl")
 export @loop
-export kill! # stop?
 
 
 include("nanos.jl") # temporary?
@@ -53,6 +52,25 @@ export @at
 # export Hz, kHz, MHz, GHz
 # export Nanos
 
+
+
+#TODO: fully implement this, move to submodule
+rtk_info(str...) = println(repeat([""], 16)..., "\r", CR_INFO("rtk> "), str...)
+rtk_warn(str...) = println(repeat([""], 16)..., "\r", CR_WARN("rtk:warn> "), str...)
+
+global const _INDEX = Loop[]
+global const _LOCK = ReentrantLock()
+
+function rtk_register(loop)
+    global _LOCK
+    global _INDEX
+    lock(_LOCK) do
+        push!(_INDEX, loop)
+    end
+    nothing
+end
+
+rtk_index() = (global _INDEX; return _INDEX)
 
 
 
