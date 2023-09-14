@@ -13,7 +13,7 @@ TaskState(::Nothing) = NoTask()
 TaskState(x) = istaskfailed(x.task) ? TaskFailed() : istaskdone(x.task) ? TaskDone() : TaskActive()
 isactive(x) = TaskState(x) isa TaskActive
 
-show(io::IO, ::NoTask)     = print(io, "[no task]" |> crayon"bold" |> crayon"black")
+show(io::IO, ::NoTask)     = print(io, "[no task]" |> crayon"bold" |> crayon"dark_gray")
 show(io::IO, ::TaskActive) = print(io, "[active]"  |> crayon"bold" |> crayon"yellow")
 show(io::IO, ::TaskFailed) = print(io, "[failed]"  |> crayon"bold" |> crayon"red")
 show(io::IO, ::TaskDone)   = print(io, "[done]"    |> crayon"bold" |> crayon"blue")
@@ -41,7 +41,7 @@ mutable struct Loop
 end
 
 function show(io::IO, loop::Loop) 
-    print(io, crayon"black"("LoopTask[", idstring(loop), "]"))
+    print(io, CR_GRAY("Loop[", idstring(loop), "]"))
     print(io, " \"$(loop.name)\"")
 end
 
@@ -108,7 +108,7 @@ function _loop(name, cond, init_ex, loop_ex, final_ex)
         local loop = Loop($(esc(name)), $cond)
         loop.task = @spawn begin
             try
-                rtk_info("starting $loop")
+                rtk_info("$loop is starting")
                 $(esc(init_ex)) # <- user defined initializer
                 wait(loop)
                 while isenabled(loop)
@@ -117,10 +117,10 @@ function _loop(name, cond, init_ex, loop_ex, final_ex)
                     wait(loop)
                 end
             catch e
-                rtk_warn("$loop failed")
+                rtk_err("$loop has failed")
                 rethrow(e)
             finally
-                rtk_info("$loop finished")
+                rtk_info("$loop has stopped")
                 #TODO: unlink conditions
                 $(esc(final_ex)) # <- user defined finalizer
             end

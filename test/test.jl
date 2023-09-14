@@ -1,20 +1,26 @@
-using ReactiveToolkit
-using MacroTools
-using Unitful
+using ReactiveToolkit, Sockets
+rtk_init()
+# using MacroTools
+# using Unitful
+
+
 tk = @loop "startup" sleep(1)
+kill(tk)
 x = Topic()
 y = Topic()
-tk = @on [x,y] println(y[])
+tk = @on [x,y] rtk_print(y[])
 
 
-# y[] = 3
+y[] = 3
 x[] = 1
 
 kill(tk)
 
+#TODO: speed test
+# task holds a topic{Dict}
 
 
-@every seconds(0.5) println("hello")
+@every seconds(0.5) yeet()
 kill(ans)
 
 
@@ -43,3 +49,5 @@ for tk in tks
     sleep(0.05)
     kill(tk)
 end
+
+INFO = ReactiveToolkit.HEARTBEAT

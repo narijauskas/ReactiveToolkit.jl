@@ -1,14 +1,46 @@
 module ReactiveToolkit
 
+
 using Crayons
-using Base.Threads: @spawn, Condition
+using Sockets
 using Unitful
+using Base.Threads: @spawn
+using Base.Threads: Condition
 
 import Base: show
 import Base: isless, *, +, -, /
 import Base: sleep
 import Base: wait, notify
 import Base: kill
+import Base: isopen, open, close
+import Sockets: recv, send
+
+
+# export RTk
+
+# module RTk
+#     import ..INDEX
+#     # index = INDEX
+
+
+#     global PRINT_TO_REPL::Bool = true
+
+#     # print_local!(b::Bool = true) = (global PRINT_TO_REPL; PRINT_TO_REPL = b)
+
+#     function rtk_print(str...)
+#         if PRINT_TO_REPL
+#             println(repeat([""], 32)..., "\r", str...)
+#         end
+#     end
+    
+#     info(str...) = rtk_print(CR_INFO("rtk> "), str...)
+#     warn(str...) = rtk_print(CR_WARN("rtk:warn> "), str...)
+#     err(str...) = rtk_print(CR_ERR("rtk:error> "), str...)
+# end
+
+
+
+# using .RTk
 
 # a representation of time
 include("nanos.jl")
@@ -16,9 +48,16 @@ export now
 export nanos, micros, millis, seconds # for now
 # export Nano
 
+# UDP multicast helpers for communication
+include("udp.jl")
+export MulticastGroup
+export send, recv
+
+
 # infinite while loops with extra steps
 include("loops.jl")
 export @loop
+export kill
 # tk = @loop "uncomment to segfault julia" sleep(1)
 
 # sharing data between tasks
@@ -35,41 +74,12 @@ export @every
 #FUTURE: @in
 
 
+include("utils.jl")
+export rtk_init
+export rtk_tasks
+export rtk_status
+export rtk_print
 
-
-
-
-
-
-
-CR_GRAY = crayon"black"
-CR_BOLD = crayon"bold"
-CR_INFO = crayon"bold"*crayon"magenta"
-CR_WARN = crayon"bold"*crayon"yellow"
-CR_ERR  = crayon"bold"*crayon"red"
-
-#TODO: fully implement this, move to submodule
-rtk_print(str...) = println(repeat([""], 32)..., "\r", str...)
-rtk_info(str...) = rtk_print(CR_INFO("rtk> "), str...)
-rtk_warn(str...) = rtk_print(CR_WARN("rtk:warn> "), str...)
-rtk_err(str...) = rtk_print(CR_ERR("rtk:error> "), str...)
-
-global const INDEX = Loop[]
-global const LOCK = ReentrantLock()
-
-function rtk_register(loop)
-    global LOCK
-    global INDEX
-    lock(LOCK) do
-        push!(INDEX, loop)
-    end
-    nothing
-end
-
-export rtk_index
-rtk_index() = (global INDEX; return INDEX)
-
-# include("utils.jl")
 # provides tools to list and manage tasks, topics and interfaces
 # someday: generate system graph (at least for run triggering)
 # someday: get stats, like total number of calls, etc.
@@ -79,6 +89,9 @@ rtk_index() = (global INDEX; return INDEX)
 # export rtk_loops
 # export rtk_tasks
 # export rtk_topics
+
+# export echo
+# echo(x) = @on x println(x[])
 
 
 
