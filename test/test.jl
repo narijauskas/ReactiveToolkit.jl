@@ -1,8 +1,16 @@
 using ReactiveToolkit, Sockets
+using Base.Threads: @spawn
+
+open(rtk_status())
+send(rtk_status(), "hello world")
+
 rtk_init()
 # using MacroTools
 # using Unitful
 
+@topic 5310 x::Int = 0
+x = Topic{Int}(5310, 0)
+x = @topic 5310 String
 
 tk = @loop "startup" sleep(1)
 kill(tk)
@@ -51,3 +59,6 @@ for tk in tks
 end
 
 INFO = ReactiveToolkit.HEARTBEAT
+
+
+tk = @spawn println(recv(rtk_status()))

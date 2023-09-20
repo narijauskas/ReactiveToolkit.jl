@@ -77,7 +77,9 @@ end
 struct Y2KException <: Exception end # -> wait for now() to wrap
 
 
-#---------------------- other sleep functions ----------------------#
+#---------------------- sleep functions ----------------------#
+
+# flexsleep()
 
 # Base.sleep(ns::Nanos) = sleep(ns.ns/1e9)
 

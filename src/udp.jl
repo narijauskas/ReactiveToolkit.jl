@@ -1,5 +1,4 @@
 
-
 mutable struct MulticastGroup
     group::IPAddr
     port::Integer
@@ -8,7 +7,7 @@ mutable struct MulticastGroup
     MulticastGroup(group, port; host = ip"0.0.0.0") = new(group, port, host, UDPSocket())
 end
 
-isopen(udp::MulticastGroup) = isdefined(udp, :socket) && 3 == udp.socket.status
+isopen(udp::MulticastGroup) = isdefined(udp, :socket) && any(udp.socket.status .== (3,4))
 
 function open(udp::MulticastGroup)
     if isopen(udp)
@@ -37,8 +36,8 @@ function show(io::IO, udp::MulticastGroup)
 end
 
 
-recv(udp::MulticastGroup) = isopen(udp) && recv(udp.socket)
-send(udp::MulticastGroup, msg) = isopen(udp) && send(udp.socket, udp.group, udp.port, msg)
+recv(udp::MulticastGroup) = isopen(udp) ? recv(udp.socket) : error("no connection")
+send(udp::MulticastGroup, msg) = isopen(udp) ? send(udp.socket, udp.group, udp.port, msg) : error("no connection")
 
 
 # udp = MulticastGroup(ip"230.8.6.7", 5309)
