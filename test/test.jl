@@ -1,10 +1,12 @@
 using ReactiveToolkit, Sockets
 using Base.Threads: @spawn
+rtk_init()
+
+x = UDPTopic{Int}("x", 5410, 0)
 
 open(rtk_status())
 send(rtk_status(), "hello world")
 
-rtk_init()
 # using MacroTools
 # using Unitful
 

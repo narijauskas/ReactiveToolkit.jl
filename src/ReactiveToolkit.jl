@@ -3,6 +3,7 @@ module ReactiveToolkit
 
 using Crayons
 using Sockets
+using Sockets: InetAddr
 using Unitful
 using Base.Threads: @spawn
 using Base.Threads: Condition
@@ -13,7 +14,7 @@ import Base: sleep
 import Base: wait, notify
 import Base: kill
 import Base: isopen, open, close
-import Sockets: recv, send
+import Sockets: send, recv, recvfrom
 
 
 # export RTk
@@ -50,7 +51,7 @@ export nanos, micros, millis, seconds # for now
 
 # UDP multicast helpers for communication
 include("udp.jl")
-export MulticastGroup
+export UDPMulticast
 export send, recv
 
 
@@ -62,14 +63,15 @@ export kill
 
 # sharing data between tasks
 include("topics.jl")
-export Topic
+export Topic, UDPTopic
+export listen!
 export @on
 # export @topic
 #MAYBE: onall
 
 
 # include("timing.jl")
-include("daemon.jl")
+# include("daemon.jl")
 export @every
 #FUTURE: @in
 

@@ -10,7 +10,7 @@ struct TaskDone   <: TaskState end # task has completed - most likely stopped ma
 #NOTE: may split TaskDone into TaskDone and TaskStopped/TaskKilled
 
 TaskState(::Nothing) = NoTask()
-TaskState(x) = istaskfailed(x.task) ? TaskFailed() : istaskdone(x.task) ? TaskDone() : TaskActive()
+TaskState(x) = isdefined(x, :task) ? istaskfailed(x.task) ? TaskFailed() : istaskdone(x.task) ? TaskDone() : TaskActive() : NoTask()
 isactive(x) = TaskState(x) isa TaskActive
 
 show(io::IO, ::NoTask)     = print(io, "[no task]" |> crayon"bold" |> crayon"dark_gray")
@@ -29,28 +29,30 @@ const ConditionUnion = Union{Threads.Condition, Condition, NoCondition}
 # Wrap *any* code into an infinite while loop scheduled to run forever on any available thread.
 # This is a feature.
 
-mutable struct Loop
+mutable struct LoopTask
     name::String
-    condition::ConditionUnion
+    condition::ConditionUnion #TODO: redo as AbstractTrigger
     @atomic enabled::Bool
-    #MAYBE: @atomic n_calls
-    #MAYBE: @atomic t_last
+    #FUTURE: @atomic n_calls::Int
+    #FUTURE: @atomic last_t::Nano
     #MAYBE: limit::Nano # throttle
     task::Task
-    Loop(name, cond) = new(name, cond, true)
+    LoopTask(name, cond) = new(name, cond, true)
 end
 
-function show(io::IO, loop::Loop) 
-    print(io, CR_GRAY("Loop[", idstring(loop), "]"))
-    print(io, " \"$(loop.name)\"")
+function show(io::IO, tk::LoopTask) 
+    print(io, CR_BOLD(" \"$(tk.name)\" "))
+    print(io, "LoopTask")
+    print(io, CR_GRAY("[", idstring(tk), "]"))
+    print(io, " - $(TaskState(tk))")
 end
 
-function show(io::IO, ::MIME"text/plain", loop::Loop)
-    print(io, loop, " - $(TaskState(loop))")
-end
+# function show(io::IO, ::MIME"text/plain", tk::LoopTask)
+#     print(io, tk, " - $(TaskState(tk))")
+# end
 
 iscompact(io) = get(io, :compact, false)::Bool
-idstring(loop::Loop) = isdefined(loop, :task) ? idstring(loop.task) : "???"
+idstring(tk::LoopTask) = isdefined(tk, :task) ? idstring(tk.task) : "???"
 idstring(task::Task) = string(convert(UInt, pointer_from_objref(task)), base = 60)
 # idstring(task::Task) = "@0x$(string(convert(UInt, pointer_from_objref(task)), base = 16, pad = Sys.WORD_SIZE>>2))"
 # Base.show(io::IO, loop::Loop) = print(io, "\"$(loop.name)\" ", idstring(loop), " - ", repr(TaskState(loop)))
@@ -60,36 +62,41 @@ idstring(task::Task) = string(convert(UInt, pointer_from_objref(task)), base = 6
 
 isenabled(x) = isequal(x.enabled, true)
 
-function kill(loop::Loop)
-    @atomic loop.enabled = false
-    if !isactive(loop)
-        rtk_warn("$loop is not active")
-    elseif loop.condition isa NoCondition
-        rtk_warn("$loop is waiting on an external condition to complete. ",
+function kill(tk::LoopTask)
+    @atomic tk.enabled = false
+    if !isactive(tk)
+        rtk_warn("$tk is not active")
+    elseif tk.condition isa NoCondition
+        rtk_warn("$tk is waiting on an external condition to complete. ",
             "It will not be rescheduled, but will remain active until ",
             "the task encounters an error or the condition is met once again.")
             # "consider implementing a LoopCondition to automate this behavior"
-    # elseif loop.condition isa CustomCondition
-        # kill!(loop.condition) # user defined custom behavior
+    # elseif tk.condition isa CustomCondition
+        # kill!(tk.condition) # user defined custom behavior
     else
-        rtk_info("$loop has been asked to stop")
-        notify(loop)
+        rtk_info("$tk has been asked to stop")
+        notify(tk, false) # notify task without calling user code
     end
     yield() # maybe. let the task quit, messages print
     nothing
 end
 
-function wait(loop::Loop)
-    loop.condition isa NoCondition && return
-    lock(loop.condition) do
-        wait(loop.condition)
-    end
+function wait(tk::LoopTask)
+    # tk.condition isa NoCondition && return true
+    # lock(tk.condition) do
+    #     return wait(tk.condition)
+    # end
+
+    tk.condition isa NoCondition || @lock tk.condition wait(tk.condition)
+    # @atomic tk.n_calls += 1
+    # @atomic tk.t_last = now()
+    return true
 end
 
-function notify(loop::Loop, arg=nothing; kw...)
-    loop.condition isa NoCondition && return
-    lock(loop.condition) do
-        notify(loop.condition, arg; kw...)
+function notify(tk::LoopTask, arg=nothing; kw...)
+    tk.condition isa NoCondition && return
+    lock(tk.condition) do
+        notify(tk.condition, arg; kw...)
     end
 end
 
@@ -105,29 +112,27 @@ _loop(name, cond, loop)         = _loop(name, cond, :(), loop, :())
 
 function _loop(name, cond, init_ex, loop_ex, final_ex)
     quote
-        local loop = Loop($(esc(name)), $cond)
-        loop.task = @spawn begin
+        local tk = LoopTask($(esc(name)), $cond)
+        tk.task = @spawn begin
             try
-                rtk_info("$loop is starting")
+                rtk_info("$tk is starting")
                 $(esc(init_ex)) # <- user defined initializer
-                wait(loop)
-                while isenabled(loop)
-                    $(esc(loop_ex)) # <- user defined loop
+                while isenabled(tk)
+                    wait(tk) && $(esc(loop_ex)) # <- user defined loop runs if notify(tk, true)
                     yield()
-                    wait(loop)
                 end
             catch e
-                rtk_err("$loop has failed")
+                rtk_err("$tk has failed")
                 rethrow(e)
             finally
-                rtk_info("$loop has stopped")
+                rtk_info("$tk has stopped")
                 #TODO: unlink conditions
                 $(esc(final_ex)) # <- user defined finalizer
             end
         end
-        rtk_register(loop) # add to global task index
+        rtk_register(tk) # add to global task index
         yield() # allows the new loop task to run immediately. solid maybe
-        loop # macro results in loop object
+        tk # macro results in loop object
     end
 end
 

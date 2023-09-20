@@ -1,22 +1,22 @@
 abstract type AbstractTopic{T} end
 
-mutable struct Topic{T} <: AbstractTopic{T}
+mutable struct LocalTopic{T} <: AbstractTopic{T}
     @atomic v::T
     # @atomic t::Nano # last update time
     conditions::Vector{Condition} #MAYBE: atomic?
-    Topic{T}(v0) where {T} = new(v0, Condition[])
+    LocalTopic{T}(v0) where {T} = new(v0, Condition[])
 end
 
-Topic(v0::T) where {T} = Topic{T}(v0)
-Topic{T}(v0) where {T <: Topic} = @error "cannot create Topics of Topics"
-Topic{T}() where {T<:Number} = Topic{T}(zero(T))
-Topic() = Topic{Any}(nothing)
+LocalTopic(v0::T) where {T} = LocalTopic{T}(v0)
+LocalTopic{T}(v0) where {T <: LocalTopic} = @error "cannot create Topics of Topics"
+LocalTopic{T}() where {T<:Number} = LocalTopic{T}(zero(T))
+LocalTopic() = LocalTopic{Any}(nothing)
 
-Base.eltype(::Type{Topic{T}}) where {T} = T
+Base.eltype(::Type{LocalTopic{T}}) where {T} = T
 
-show(io::IO, x::Topic{T}) where {T} = print(io, "Topic{$T}: $(x[])")
+show(io::IO, x::LocalTopic{T}) where {T} = print(io, "LocalTopic{$T}: $(x[])")
 
-link!(x::Topic, cond) = push!(x.conditions, cond)
+link!(x::LocalTopic, cond) = push!(x.conditions, cond)
 link!(xs, cond) = foreach(x->link!(x, cond), xs)
 
 
@@ -28,11 +28,11 @@ link!(xs, cond) = foreach(x->link!(x, cond), xs)
 # """
 
 # @inline gettime(x::Topic) = x.t
-@inline Base.getindex(x::Topic) = x.v
+@inline Base.getindex(x::LocalTopic) = x.v
 #MAYBE: consider making getindex atomic as well. Slower but safer.
 # Can we break the current setup? Maybe with something like push!(x[], 1)
 
-@inline function Base.setindex!(x::Topic, v)
+@inline function Base.setindex!(x::LocalTopic, v)
     @atomic x.v = v
     # @atomic x.t = now()
     notify(x)
@@ -40,7 +40,7 @@ link!(xs, cond) = foreach(x->link!(x, cond), xs)
     return v
 end
 
-function notify(x::AbstractTopic, arg=nothing; kw...)
+function notify(x::LocalTopic, arg=nothing; kw...)
     sum(x.conditions; init = 0) do cond
         lock(cond) do
             notify(cond, arg; kw...)
@@ -48,6 +48,75 @@ function notify(x::AbstractTopic, arg=nothing; kw...)
     end
 end
 
+
+# RTk.topics.led_state
+# RTk.topics[:led_state]
+# RTk.topics[5410]
+
+#------------------------------------ UDP Topics ------------------------------------#
+
+
+mutable struct UDPTopic{T} <: AbstractTopic{T}
+    const name::String
+    @atomic value::T
+    @atomic last_t::Nano
+    @atomic last_ip::Sockets.InetAddr
+    const cond::Threads.Condition
+    const udp::UDPMulticast
+    listener::LoopTask
+    function UDPTopic{T}(name, port, value) where {T}
+        new{T}(name,
+            convert(T, value),
+            now(),
+            InetAddr(Sockets.localhost, port),
+            Threads.Condition(),
+            UDPMulticast(ip"230.8.6.7", port),
+        ) |> listen!
+    end
+end
+
+UDPTopic(name, port, value::T) where {T} = UDPTopic{T}(name, port, value)
+
+show(io::IO, x::UDPTopic{T}) where {T} = print(io, "UDPTopic{$T}: $(x[])")
+
+function show(io::IO, ::MIME"text/plain", x::UDPTopic{T}) where {T}
+    print(io, CR_BOLD(" \"$(x.name)\" "))
+    print(io, "UDPTopic{$T}: $(x[])")
+    println(io)
+    # print(io, " - $(x.last_ip)")
+    # println(io, " - $(x.last_t)")
+    println(io, x.udp)
+    println(io, x.listener)
+end
+
+function listen!(x::UDPTopic{T}) where {T}
+    isdefined(x, :listener) && kill(x.listener)
+    isopen(x.udp) || open(x.udp)
+    x.listener = @loop "$(x.name) listener" begin
+        #FUTURE: try/catch?
+        ip, bytes = recvfrom(x.udp) # blocks
+        @atomic x.value = decode(T, bytes)
+        @atomic x.last_t = now()
+        @atomic x.last_ip = ip
+        notify(x)
+    end
+    return x
+end
+
+@inline Base.getindex(x::UDPTopic) = x.value
+
+@inline function Base.setindex!(x::UDPTopic, v)
+    @atomic x.value = v
+    send(x.udp, encode(x.value))
+    return x.value
+end
+
+wait(x::UDPTopic) = @lock x.cond wait(x.cond)
+notify(x::UDPTopic, arg=true; kw...) = @lock x.cond notify(x.cond, arg; kw...)
+
+encode(v::T) where {T} = "$v"
+decode(::Type{String}, bytes) = String(bytes)
+decode(::Type{T}, bytes) where {T} = parse(T, String(bytes))
 
 #------------------------------------ on macro ------------------------------------#
 
@@ -61,8 +130,9 @@ _on(x, name, loop)        = _on(x, name, :(), loop, :())
 
 function _on(x, name, init, loop, final)
     quote
-        cond = Threads.Condition()
-        link!($(esc(x)), cond) # x can be any iterable of topics
+        # cond = Threads.Condition()
+        # link!($(esc(x)), cond) # x can be any iterable of topics
+        cond = $(esc(x)).cond
         @loop $(esc(name)) cond $(esc(init)) $(esc(loop)) $(esc(final))
     end
 end

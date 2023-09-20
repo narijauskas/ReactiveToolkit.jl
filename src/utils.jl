@@ -1,7 +1,7 @@
-global const LOOP_INDEX = Loop[]
+global const LOOP_INDEX = LoopTask[]
 global const LOOP_LOCK = ReentrantLock()
 global PRINT_TO_REPL::Bool = true
-global const STATUS = MulticastGroup(ip"230.8.6.7", 5309)
+global const STATUS = UDPMulticast(ip"230.8.6.7", 5309)
 
 
 CR_GRAY = crayon"dark_gray"
@@ -17,7 +17,7 @@ function rtk_print(str...)
     if PRINT_TO_REPL
         println(repeat([""], 32)..., "\r", str...)
     end
-    send(STATUS, string(str...))
+    isopen(STATUS) && send(STATUS, string(str...))
 end
 
 
@@ -26,11 +26,11 @@ rtk_warn(str...) = rtk_print(CR_WARN("rtk:warn> "), str...)
 rtk_err(str...) = rtk_print(CR_ERR("rtk:error> "), str...)
 
 
-function rtk_register(loop::Loop)
+function rtk_register(tk::LoopTask)
     global LOOP_LOCK
     global LOOP_INDEX
     lock(LOOP_LOCK) do
-        push!(LOOP_INDEX, loop)
+        push!(LOOP_INDEX, tk)
     end
     nothing
 end
@@ -39,7 +39,7 @@ rtk_tasks() = return LOOP_INDEX
 rtk_status() = return STATUS
 # rtk_topics()
 
-function rtk_init(; print_to_repl = false)
+function rtk_init(; print_to_repl = true)
     global PRINT_TO_REPL = print_to_repl
     global STATUS
     open(STATUS)
