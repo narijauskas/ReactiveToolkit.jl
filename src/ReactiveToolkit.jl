@@ -7,6 +7,8 @@ using Sockets: InetAddr
 using Unitful
 using Base.Threads: @spawn
 using Base.Threads: Condition
+import Dates
+import Dates: canonicalize, Nanosecond
 
 import Base: show
 import Base: isless, *, +, -, /
@@ -47,6 +49,7 @@ import Sockets: send, recv, recvfrom
 include("nanos.jl")
 export now
 export nanos, micros, millis, seconds # for now
+export ago
 # export Nano
 
 # UDP multicast helpers for communication

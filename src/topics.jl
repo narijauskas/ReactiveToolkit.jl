@@ -59,8 +59,8 @@ end
 mutable struct UDPTopic{T} <: AbstractTopic{T}
     const name::String
     @atomic value::T
-    @atomic last_t::Nano
-    @atomic last_ip::Sockets.InetAddr
+    @atomic t_last::Nano
+    @atomic ip_last::Sockets.InetAddr
     const cond::Threads.Condition
     const udp::UDPMulticast
     listener::LoopTask
@@ -85,8 +85,8 @@ function show(io::IO, ::MIME"text/plain", x::UDPTopic{T}) where {T}
     println(io)
     # print(io, " - $(x.last_ip)")
     # println(io, " - $(x.last_t)")
-    println(io, x.udp)
-    println(io, x.listener)
+    println(io, " ", x.udp)
+    println(io, " ", x.listener)
 end
 
 function listen!(x::UDPTopic{T}) where {T}
@@ -96,8 +96,8 @@ function listen!(x::UDPTopic{T}) where {T}
         #FUTURE: try/catch?
         ip, bytes = recvfrom(x.udp) # blocks
         @atomic x.value = decode(T, bytes)
-        @atomic x.last_t = now()
-        @atomic x.last_ip = ip
+        @atomic x.t_last = now()
+        @atomic x.ip_last = ip
         notify(x)
     end
     return x

@@ -3,6 +3,8 @@ using Base.Threads: @spawn
 rtk_init()
 
 x = UDPTopic{Int}("x", 5410, 0)
+tk = @on x println("x is now: $(x[])")
+# @topic 5410 x::Int = 0
 
 open(rtk_status())
 send(rtk_status(), "hello world")

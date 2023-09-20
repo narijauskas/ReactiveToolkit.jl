@@ -33,28 +33,33 @@ mutable struct LoopTask
     name::String
     condition::ConditionUnion #TODO: redo as AbstractTrigger
     @atomic enabled::Bool
-    #FUTURE: @atomic n_calls::Int
-    #FUTURE: @atomic last_t::Nano
+    @atomic n_calls::Int
+    const t_start::Nano
     #MAYBE: limit::Nano # throttle
+    @atomic t_last::Union{Nano,Nothing}
     task::Task
-    LoopTask(name, cond) = new(name, cond, true)
+    LoopTask(name, cond) = new(name, cond, true, 0, now(), nothing)
 end
 
 function show(io::IO, tk::LoopTask) 
-    print(io, CR_BOLD(" \"$(tk.name)\" "))
     print(io, "LoopTask")
-    print(io, CR_GRAY("[", idstring(tk), "]"))
+    print(io, "[", CR_GRAY(idstring(tk)), "]")
+    print(io, CR_BOLD(" \"$(tk.name)\""))
     print(io, " - $(TaskState(tk))")
 end
 
-# function show(io::IO, ::MIME"text/plain", tk::LoopTask)
-#     print(io, tk, " - $(TaskState(tk))")
-# end
+function show(io::IO, ::MIME"text/plain", tk::LoopTask)
+    println(io, tk)
+    # println(io, "    ", tk.task)
+    println(io, "    runs:  $(tk.n_calls)")
+    println(io, "    last:  $(isnothing(tk.t_last) ? "never" : tk.t_last |> ago)")
+    println(io, "    first: $(tk.t_start |> ago)")
+end
 
 iscompact(io) = get(io, :compact, false)::Bool
 idstring(tk::LoopTask) = isdefined(tk, :task) ? idstring(tk.task) : "???"
-idstring(task::Task) = string(convert(UInt, pointer_from_objref(task)), base = 60)
-# idstring(task::Task) = "@0x$(string(convert(UInt, pointer_from_objref(task)), base = 16, pad = Sys.WORD_SIZE>>2))"
+# idstring(task::Task) = string(convert(UInt, pointer_from_objref(task)), base = 60)
+idstring(task::Task) = "@0x$(string(convert(UInt, pointer_from_objref(task)), base = 16, pad = Sys.WORD_SIZE>>2))"
 # Base.show(io::IO, loop::Loop) = print(io, "\"$(loop.name)\" ", idstring(loop), " - ", repr(TaskState(loop)))
 # Base.show(io::IO, loop::Loop) = print(io, idstring(loop), " \"$(loop.name)\"")
 # Base.show(io::IO, loop::Loop) = print(io, "\"$(loop.name)\" ", idstring(loop))
@@ -82,18 +87,16 @@ function kill(tk::LoopTask)
 end
 
 function wait(tk::LoopTask)
-    # tk.condition isa NoCondition && return true
-    # lock(tk.condition) do
-    #     return wait(tk.condition)
-    # end
-
-    tk.condition isa NoCondition || @lock tk.condition wait(tk.condition)
-    # @atomic tk.n_calls += 1
-    # @atomic tk.t_last = now()
-    return true
+    if tk.condition isa NoCondition || @lock tk.condition wait(tk.condition)
+        @atomic tk.n_calls += 1
+        @atomic tk.t_last = now()
+        return true
+    else
+        return false
+    end
 end
 
-function notify(tk::LoopTask, arg=nothing; kw...)
+function notify(tk::LoopTask, arg=true; kw...)
     tk.condition isa NoCondition && return
     lock(tk.condition) do
         notify(tk.condition, arg; kw...)

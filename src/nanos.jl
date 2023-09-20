@@ -29,3 +29,16 @@ isless(t1::Nano, t2::Nano) = isless(t1.ns, t2.ns)
 *(k::Number, t::Nano) = Nano(k*t.ns)
 /(t1::Nano, t2::Nano) = t1.ns/t2.ns
 /(t::Nano, k::Number) = Nano(t.ns/k)
+
+Dates.Nanosecond(t::Nano) = Nanosecond(t.ns)
+ago(t::Nano) = "$(Nanosecond(now()-t) |> canonicalize |> t->first(t.periods)) ago"
+# function since(t::Nano)
+#     dt = now() - t
+#     # 
+    
+#     dt >= 1.0u"hr"
+#     dt >= 1.0u"min"
+#     dt <= 1.0u"μs"
+# end
+
+

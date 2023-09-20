@@ -32,7 +32,8 @@ function close(udp::UDPMulticast)
 end
 
 function show(io::IO, udp::UDPMulticast)
-    print(io, "Multicast[$(udp.group):$(udp.port)] - ")
+    print(io, "Multicast[")
+    print(io, CR_GRAY("$(udp.group):$(udp.port)"), "] - ")
     print(io, crayon"bold"(isopen(udp) ? crayon"yellow"("[open]") : crayon"red"("[closed]")))
 end
 
