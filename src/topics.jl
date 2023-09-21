@@ -80,13 +80,18 @@ UDPTopic(name, port, value::T) where {T} = UDPTopic{T}(name, port, value)
 show(io::IO, x::UDPTopic{T}) where {T} = print(io, "UDPTopic{$T}: $(x[])")
 
 function show(io::IO, ::MIME"text/plain", x::UDPTopic{T}) where {T}
-    print(io, CR_BOLD(" \"$(x.name)\" "))
-    print(io, "UDPTopic{$T}: $(x[])")
-    println(io)
+    print(io, "UDPTopic{")
+    print(io, CR_GRAY("$T"), "}")
+    println(io, CR_BOLD(" \"$(x.name)\" "))
+    # print(io, "UDPTopic{$T}: $(x[])")
+    # println(io)
     # print(io, " - $(x.last_ip)")
     # println(io, " - $(x.last_t)")
-    println(io, " ", x.udp)
-    println(io, " ", x.listener)
+    println(io, "  value: ", x.value)
+    println(io, "  updated: ", x.t_last |> ago)
+    println(io, "  source: $(x.ip_last.host):$(x.ip_last.port)")
+    println(io, "  udp:  ", x.udp)
+    println(io, "  task: ", x.listener)
 end
 
 function listen!(x::UDPTopic{T}) where {T}
@@ -116,7 +121,10 @@ notify(x::UDPTopic, arg=true; kw...) = @lock x.cond notify(x.cond, arg; kw...)
 
 encode(v::T) where {T} = "$v"
 decode(::Type{String}, bytes) = String(bytes)
-decode(::Type{T}, bytes) where {T} = parse(T, String(bytes))
+decode(::Type{T}, bytes) where {T<:Number} = parse(T, String(bytes))
+# decode(::Type{T}, bytes) where {T} = T()
+
+
 
 #------------------------------------ on macro ------------------------------------#
 
@@ -132,14 +140,15 @@ function _on(x, name, init, loop, final)
     quote
         # cond = Threads.Condition()
         # link!($(esc(x)), cond) # x can be any iterable of topics
-        cond = $(esc(x)).cond
-        @loop $(esc(name)) cond $(esc(init)) $(esc(loop)) $(esc(final))
+        trig = ConditionTrigger($(esc(x)).cond)
+        @loop $(esc(name)) trig $(esc(init)) $(esc(loop)) $(esc(final))
     end
 end
 
 
+#------------------------------------ echo------------------------------------#
 
-
+echo(x::AbstractTopic) = @on x "echo $(x.name)" println(x.name, ": ", x[])
 
 
 

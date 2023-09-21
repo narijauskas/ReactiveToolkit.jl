@@ -16,7 +16,7 @@ seconds(x)  = Nano(1e9x)
 
 
 show(io::IO, t::Nano) = print(io, "Nano $(t.ns)")
-sleep(t::Nano) = sleep(t.ns/1e9)
+# sleep(t::Nano) = sleep(t.ns/1e9)
 #MAYBE: since(t::Nano) = now() - t
 #MAYBE: until(t::Nano) = t - now()
 #MAYBE: freq(t::Nano) = (1e9/t.ns)u"Hz"

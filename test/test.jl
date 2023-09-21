@@ -2,7 +2,12 @@ using ReactiveToolkit, Sockets
 using Base.Threads: @spawn
 rtk_init()
 
-x = UDPTopic{Int}("x", 5410, 0)
+x = UDPTopic{Bool}("x", 5410, false)
+y = UDPTopic{UInt8}("x", 5412, 0)
+
+tk = @every seconds(1) println("hello")
+
+
 tk = @on x println("x is now: $(x[])")
 # @topic 5410 x::Int = 0
 
@@ -23,6 +28,12 @@ y = Topic()
 tk = @on [x,y] rtk_print(y[])
 
 
+
+t = LinRange(0,1,100)
+xs = @. 127*(sin(2π*t)+1)
+xxs = repeat(round.(UInt8,xs),10)
+tk = @every millis(10) y[] = pop!(xxs)
+
 y[] = 3
 x[] = 1
 
@@ -35,6 +46,8 @@ kill(tk)
 @every seconds(0.5) yeet()
 kill(ans)
 
+
+t = UDPTopic("t", 5413, now())
 
 
 kill.(rtk_index())

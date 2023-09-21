@@ -68,6 +68,7 @@ export kill
 include("topics.jl")
 export Topic, UDPTopic
 export listen!
+export echo
 export @on
 # export @topic
 #MAYBE: onall
@@ -75,8 +76,9 @@ export @on
 
 # include("timing.jl")
 # include("daemon.jl")
+include("timers.jl")
 export @every
-#FUTURE: @in
+#FUTURE: @in, @after
 
 
 include("utils.jl")

@@ -23,7 +23,17 @@ struct NoCondition end #TODO: rename External
 const ConditionUnion = Union{Threads.Condition, Condition, NoCondition}
 #FUTURE: Have a RTkCondition type that holds upstreams for unlinking when task is done
 
-# struct KillTaskException <: Exception end
+abstract type AbstractTrigger end
+mutable struct ExternalTrigger  <: AbstractTrigger
+end
+mutable struct ConditionTrigger <: AbstractTrigger
+    cond::Threads.Condition
+end
+mutable struct TimerTrigger <: AbstractTrigger
+    dt::Nano
+    t_next::Nano
+end
+TimerTrigger(dt::Nano) = TimerTrigger(dt, now()+dt)
 
 ## ------------------------------------ Loops ------------------------------------ ##
 # Wrap *any* code into an infinite while loop scheduled to run forever on any available thread.
@@ -31,14 +41,14 @@ const ConditionUnion = Union{Threads.Condition, Condition, NoCondition}
 
 mutable struct LoopTask
     name::String
-    condition::ConditionUnion #TODO: redo as AbstractTrigger
+    trigger::AbstractTrigger
     @atomic enabled::Bool
-    @atomic n_calls::Int
     const t_start::Nano
-    #MAYBE: limit::Nano # throttle
     @atomic t_last::Union{Nano,Nothing}
+    @atomic n_calls::Int
+    #MAYBE: limit::Nano # throttle
     task::Task
-    LoopTask(name, cond) = new(name, cond, true, 0, now(), nothing)
+    LoopTask(name, trig) = new(name, trig, true, now(), nothing, 0)
 end
 
 function show(io::IO, tk::LoopTask) 
@@ -51,9 +61,9 @@ end
 function show(io::IO, ::MIME"text/plain", tk::LoopTask)
     println(io, tk)
     # println(io, "    ", tk.task)
-    println(io, "    runs:  $(tk.n_calls)")
-    println(io, "    last:  $(isnothing(tk.t_last) ? "never" : tk.t_last |> ago)")
-    println(io, "    first: $(tk.t_start |> ago)")
+    println(io, "  made: $(tk.t_start |> ago)")
+    println(io, "  runs: $(tk.n_calls)")
+    println(io, "  last: $(isnothing(tk.t_last) ? "never" : tk.t_last |> ago)")
 end
 
 iscompact(io) = get(io, :compact, false)::Bool
@@ -71,7 +81,7 @@ function kill(tk::LoopTask)
     @atomic tk.enabled = false
     if !isactive(tk)
         rtk_warn("$tk is not active")
-    elseif tk.condition isa NoCondition
+    elseif tk.trigger isa ExternalTrigger
         rtk_warn("$tk is waiting on an external condition to complete. ",
             "It will not be rescheduled, but will remain active until ",
             "the task encounters an error or the condition is met once again.")
@@ -86,22 +96,25 @@ function kill(tk::LoopTask)
     nothing
 end
 
+wait(trig::AbstractTrigger) = true
+notify(trig::AbstractTrigger, arg=true; kw...) = nothing
+wait(trig::ConditionTrigger) = @lock trig.cond wait(trig.cond)
+notify(trig::ConditionTrigger, arg=true; kw...) = @lock trig.cond notify(trig.cond, arg; kw...)
+# wait(trig::TimerTrigger) = sleep(0.001) #TODO: make this a bit more intelligent
+# notify(trig::TimerTrigger, arg=true; kw...) = nothing
+
+notify(tk::LoopTask, arg=true; kw...) = notify(tk.trigger, arg; kw...)
 function wait(tk::LoopTask)
-    if tk.condition isa NoCondition || @lock tk.condition wait(tk.condition)
+    if wait(tk.trigger)
         @atomic tk.n_calls += 1
         @atomic tk.t_last = now()
-        return true
+        return isenabled(tk)
     else
         return false
     end
 end
 
-function notify(tk::LoopTask, arg=true; kw...)
-    tk.condition isa NoCondition && return
-    lock(tk.condition) do
-        notify(tk.condition, arg; kw...)
-    end
-end
+
 
 ## ------------------------------------ macro ------------------------------------ ##
 
@@ -109,13 +122,13 @@ macro loop(args...)
     _loop(args...)
 end
 
-_loop(name, loop)               = _loop(name, NoCondition(), :(), loop, :())
-_loop(name, init, loop, final)  = _loop(name, NoCondition(), init, loop, final)
-_loop(name, cond, loop)         = _loop(name, cond, :(), loop, :())
+_loop(name, loop)               = _loop(name, ExternalTrigger(), :(), loop, :())
+_loop(name, init, loop, final)  = _loop(name, ExternalTrigger(), init, loop, final)
+_loop(name, trig, loop)         = _loop(name, trig, :(), loop, :())
 
-function _loop(name, cond, init_ex, loop_ex, final_ex)
+function _loop(name, trig, init_ex, loop_ex, final_ex)
     quote
-        local tk = LoopTask($(esc(name)), $cond)
+        local tk = LoopTask($(esc(name)), $trig)
         tk.task = @spawn begin
             try
                 rtk_info("$tk is starting")

@@ -6,6 +6,7 @@ global const STATUS = UDPMulticast(ip"230.8.6.7", 5309)
 
 CR_GRAY = crayon"dark_gray"
 CR_BOLD = crayon"bold"
+CR_EMPH = crayon"italics"
 CR_INFO = crayon"bold"*crayon"magenta"
 CR_WARN = crayon"bold"*crayon"yellow"
 CR_ERR  = crayon"bold"*crayon"red"
