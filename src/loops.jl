@@ -24,7 +24,7 @@ const ConditionUnion = Union{Threads.Condition, Condition, NoCondition}
 #FUTURE: Have a RTkCondition type that holds upstreams for unlinking when task is done
 
 abstract type AbstractTrigger end
-mutable struct ExternalTrigger  <: AbstractTrigger
+mutable struct ExternalTrigger <: AbstractTrigger
 end
 mutable struct ConditionTrigger <: AbstractTrigger
     cond::Threads.Condition
@@ -51,11 +51,18 @@ mutable struct LoopTask
     LoopTask(name, trig) = new(name, trig, true, now(), nothing, 0)
 end
 
+show_task_id(tk) = show_task_id(tk, TaskState(tk))
+show_task_id( _, ::NoTask) = "[ --- no task --- ]" |> crayon"bold" |> crayon"dark_gray"
+show_task_id(tk, ::TaskActive) = "[$(idstring(tk)) - active]" |> crayon"bold" |> crayon"yellow"
+show_task_id(tk, ::TaskFailed) = "[$(idstring(tk)) - failed]" |> crayon"bold" |> crayon"red"
+show_task_id(tk, ::TaskDone)   = "[$(idstring(tk))  -  done]" |> crayon"bold" |> crayon"blue"
+
 function show(io::IO, tk::LoopTask) 
-    print(io, "LoopTask")
-    print(io, "[", CR_GRAY(idstring(tk)), "]")
+    print(io, show_task_id(tk))
+    # print(io, "  LoopTask")
+    # print(io, "[", CR_GRAY(idstring(tk)), "]")
     print(io, CR_BOLD(" \"$(tk.name)\""))
-    print(io, " - $(TaskState(tk))")
+    # print(io, " - $(TaskState(tk))")
 end
 
 function show(io::IO, ::MIME"text/plain", tk::LoopTask)
@@ -66,10 +73,11 @@ function show(io::IO, ::MIME"text/plain", tk::LoopTask)
     println(io, "  last: $(isnothing(tk.t_last) ? "never" : tk.t_last |> ago)")
 end
 
+debug(tk::LoopTask) = tk.task
 iscompact(io) = get(io, :compact, false)::Bool
 idstring(tk::LoopTask) = isdefined(tk, :task) ? idstring(tk.task) : "???"
-# idstring(task::Task) = string(convert(UInt, pointer_from_objref(task)), base = 60)
-idstring(task::Task) = "@0x$(string(convert(UInt, pointer_from_objref(task)), base = 16, pad = Sys.WORD_SIZE>>2))"
+idstring(task::Task) = string(convert(UInt, pointer_from_objref(task)), base = 60)
+# idstring(task::Task) = "@0x$(string(convert(UInt, pointer_from_objref(task)), base = 16, pad = Sys.WORD_SIZE>>2))"
 # Base.show(io::IO, loop::Loop) = print(io, "\"$(loop.name)\" ", idstring(loop), " - ", repr(TaskState(loop)))
 # Base.show(io::IO, loop::Loop) = print(io, idstring(loop), " \"$(loop.name)\"")
 # Base.show(io::IO, loop::Loop) = print(io, "\"$(loop.name)\" ", idstring(loop))
@@ -128,7 +136,7 @@ _loop(name, trig, loop)         = _loop(name, trig, :(), loop, :())
 
 function _loop(name, trig, init_ex, loop_ex, final_ex)
     quote
-        local tk = LoopTask($(esc(name)), $trig)
+        local tk = LoopTask($(esc(name)), $trig) # partially initialized
         tk.task = @spawn begin
             try
                 rtk_info("$tk is starting")
@@ -148,59 +156,6 @@ function _loop(name, trig, init_ex, loop_ex, final_ex)
         end
         rtk_register(tk) # add to global task index
         yield() # allows the new loop task to run immediately. solid maybe
-        tk # macro results in loop object
+        tk # macro results in LoopTask object
     end
 end
-
-
-
-
-# macro loop(name, ex) :(@loop $name () $ex ()) end
-# macro loop(name, cond, ex) :(@loop $name $cond () $ex ()) end
-# macro loop(name, init_ex, loop_ex, final_ex) :(@loop $name NoCondition() $init_ex $loop_ex $final_ex) end
-# macro loop(name, cond, init_ex, loop_ex, final_ex)
-#     quote
-#         loop = Loop($name, $cond)
-#         loop.task = @spawn begin
-#             try
-#                 rtk_info("starting $loop")
-#                 $(esc(init_ex))
-#                 wait(loop)
-#                 while isenabled(loop)
-#                     $(esc(loop_ex))
-#                     yield()
-#                     wait(loop)
-#                 end
-#             catch e
-#                 rtk_warn("$loop failed")
-#                 rethrow(e)
-#             finally
-#                 rtk_info("$loop finished")
-#                 $(esc(final_ex))
-#             end
-#         end
-#         rtk_register(loop) # push!(ReactiveToolkit.index, loop)
-#         yield() # allows the spawned loop task to run immediately. solid maybe
-#         # return loop
-#         loop
-#     end
-# end
-
-
-
-# macro loop(name, loop_ex)
-#     _loop(name, NoCondition(), :(), loop_ex, :())
-# end
-
-# macro loop(name, init_ex, loop_ex, final_ex)
-#     _loop(name, NoCondition(), init_ex, loop_ex, final_ex)
-# end
-
-# macro loop(name, cond, init_ex, loop_ex, final_ex)
-#     _loop(name, cond, init_ex, loop_ex, final_ex)
-# end
-
-# macro loop(name, cond, loop_ex)
-#     _loop(name, cond, :(), loop_ex, :())
-# end
-

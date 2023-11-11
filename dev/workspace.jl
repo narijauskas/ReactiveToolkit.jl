@@ -190,7 +190,24 @@ console, port = serial_io("COM6")
     # println(readline(sp))
 
 
+function monitor(port_name)
+    sp = SerialPort(port_name)
 
+    tk = @loop "$port_name monitor" begin
+        open(sp)
+    end begin
+        println(stdout, readline(sp))
+    end begin
+        isopen(sp) && close(sp)
+    end
+    return tk, sp
+end
+
+task, port = monitor("COM3")
+# either can be used to stop the task and close the port
+kill(task)
+close(port)
+# task = monitor("dev/ttyUSB0")
 
 ## ------------------------------------ controls example ------------------------------------ ##
 using ReactiveToolkit

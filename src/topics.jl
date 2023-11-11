@@ -1,5 +1,126 @@
 abstract type AbstractTopic{T} end
 
+# for all topics:
+# """
+#     x[] = v
+# Store a value `v` to a topic `x`, along with a timestamp?. Atomic, thread-safe.
+#     x[] -> v
+# Read and return `v`, the current value of topic `x`. Atomic, thread-safe.
+# """
+#=
+making topics:
+@topic x::Int = 0
+@topic x = 0
+
+=#
+
+#------------------------------------ Generic Topics ------------------------------------#
+# implemented with a reentrant lock and a 2-element circular buffer
+
+mutable struct Topic{T} <: AbstractTopic{T}
+    const name::String
+    const buffer::Vector{T}
+    const capacity::Int
+    @atomic t_last::Nano
+    @atomic rptr::Int # read pointer
+    const cond::Threads.Condition
+    const lock::ReentrantLock
+end
+
+function Topic{T}(name, v::T) where {T}
+    Topic{T}(name, convert(T, v))
+end
+
+function Topic{T}(name, v::T) where {T}
+    cond = Threads.Condition()
+    lock = ReentrantLock()
+    Topic{T}(name, [v,v], 2, now(), 1, cond, lock)
+    # MAYBE: register topic globally?
+end
+
+#= Topics must have a value.
+We could implement topics to hold Union{T,Nothing} values, 
+or return Nothing if empty. However, this ends up creating
+a lot of downstream errors from code that can't handle
+Nothing types.
+=#
+
+
+# Quasihomoiconicity
+
+macro topic(ex)
+    _topic(ex)
+end
+
+function _topic(ex)
+    if @capture(ex, name_::T_ = value_)
+        quote
+            $(esc(name)) = Topic{$T}($("$name"), $value)
+        end
+    elseif @capture(ex, name_ = value_)
+        quote
+            $(esc(name)) = Topic{Any}($("$name"), $value)
+        end
+    else
+        quote
+            error("invalid topic definition")
+        end
+    end
+end
+
+@inline function getindex(x::Topic)
+    @inbounds return x.buffer[x.rptr]
+end
+
+@inline function setindex!(x::Topic{T}, value) where T
+    setindex!(x, convert(T, value))
+end
+
+@inline function setindex!(x::Topic{T}, value::T) where T
+    @lock x.lock begin
+        wptr = (x.rptr >= x.capacity ? 1 : x.rptr + 1)
+        @inbounds x.buffer[wptr] = value
+        @atomic x.t_last = now()
+        @atomic x.rptr = wptr
+        notify(x)
+    end
+    return x[]
+end
+
+@inline function wait(x::Topic)
+    @lock x.cond wait(x.cond)
+end
+
+@inline function notify(x::Topic, arg=true; kw...)
+    @lock x.cond notify(x.cond, arg; kw...)
+end
+
+function show(io::IO, x::Topic{T}) where {T}
+    print(io, "Topic{$T}: $(x[])")
+end
+
+# for multiple conditions:
+# sum(x.conditions; init = 0) do cond
+#     @lock cond notify(cond, arg; kw...)
+# end
+
+
+#= what's better?
+option 1:
+    lock(x.lock)
+    try
+        stuff
+    finally
+        unlock(x.lock)
+    end
+
+option 2:
+    @lock x.lock stuff
+=#
+
+
+#------------------------------------ Atomic/Local Topics ------------------------------------#
+
 mutable struct LocalTopic{T} <: AbstractTopic{T}
     @atomic v::T
     # @atomic t::Nano # last update time
@@ -20,13 +141,6 @@ link!(x::LocalTopic, cond) = push!(x.conditions, cond)
 link!(xs, cond) = foreach(x->link!(x, cond), xs)
 
 
-# """
-#     x[] = v
-# Store a value `v` to a topic `x`, along with a timestamp?. Atomic, thread-safe.
-#     x[] -> v
-# Read and return `v`, the current value of topic `x`. Atomic, thread-safe.
-# """
-
 # @inline gettime(x::Topic) = x.t
 @inline Base.getindex(x::LocalTopic) = x.v
 #MAYBE: consider making getindex atomic as well. Slower but safer.
@@ -40,6 +154,8 @@ link!(xs, cond) = foreach(x->link!(x, cond), xs)
     return v
 end
 
+# notify(x::UDPTopic, arg=true; kw...) = @lock x.cond notify(x.cond, arg; kw...)
+
 function notify(x::LocalTopic, arg=nothing; kw...)
     sum(x.conditions; init = 0) do cond
         lock(cond) do
@@ -47,6 +163,7 @@ function notify(x::LocalTopic, arg=nothing; kw...)
         end
     end
 end
+
 
 
 # RTk.topics.led_state

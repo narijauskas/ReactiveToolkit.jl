@@ -6,8 +6,8 @@
 sleep(nanos::Nano) = sleep(nanos.ns/1e9)
 
 
-# Linux-only usleep function, best for 5ms to 500us
-function usleep(t::Nano)
+# Linux-only micro-sleep function, best for 5ms to 500us
+function microsleep(t::Nano)
     @static if Sys.islinux()
         ccall(:usleep, Cint, (Cuint,), t.ns*1000)
     else
@@ -34,10 +34,10 @@ function busywait(t::Nano)
 end
 
 # choose the best sleep function for the given interval
-# can tune, but doesn't matter too much
+# probably needs a bit of tuning
 function flexsleep(t::Nano)
     t > millis(10) ? sleep(t - millis(1)) :
-    t > micros(10) ? usleep(t - micros(1)) :
+    t > micros(10) ? microsleep(t - micros(1)) :
     t > nanos(10)  ? yieldsleep(t - nanos(1)) :
     busywait(t)
 end

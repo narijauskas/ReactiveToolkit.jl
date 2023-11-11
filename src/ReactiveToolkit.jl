@@ -5,7 +5,9 @@ using Crayons
 using Sockets
 using Sockets: InetAddr
 using Unitful
+using MacroTools: @capture
 using Base.Threads: @spawn
+export @spawn # because I got tired of doing this every time
 using Base.Threads: Condition
 import Dates
 import Dates: canonicalize, Nanosecond
@@ -14,6 +16,7 @@ import Base: show
 import Base: isless, *, +, -, /
 import Base: sleep
 import Base: wait, notify
+import Base: setindex!, getindex
 import Base: kill
 import Base: isopen, open, close
 import Sockets: send, recv, recvfrom
@@ -70,7 +73,8 @@ export Topic, UDPTopic
 export listen!
 export echo
 export @on
-# export @topic
+export @topic
+export _topic #temporary
 #MAYBE: onall
 
 
