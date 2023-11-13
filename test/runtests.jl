@@ -1,7 +1,7 @@
 using ReactiveToolkit, Test
 # using SafeTestsets, BenchmarkTools
 
-# Level 1 Tests: functionality/unit testing
+# Level 1: functionality/unit testing
 begin
     include("test_topics.jl")
     # @time @safetestset "Time & Frequency" begin include("test_nanos.jl") end
@@ -9,7 +9,8 @@ begin
     # @time @safetestset "Actions" begin include("test_actions.jl") end
 end
 
-# Level 2 Tests: performance/regression
+# Level 2: hardware-in-the-loop tests
+# Level 3: performance/regression
 #=
 @time begin
     # @time @safetestset "Time & Frequency" begin include("bench_times.jl") end

@@ -42,6 +42,9 @@ function flexsleep(t::Nano)
     busywait(t)
 end
 
+#TODO: implement or remove. time_ns() shouldn't wrap for some 500 years
+struct Y2KException <: Exception end
+
 function wait(trig::TimerTrigger)
     while now() < trig.t_next
         flexsleep(trig.t_next - now())
@@ -88,7 +91,7 @@ function _every(dt, name, init, loop, final)
         # timer = Topic(Nano($dt))
         # add!(ReactiveToolkit.DAEMON, timer)
         # rtk_schedule(timer)
-        trig = TimerTrigger(Nano($dt))
+        trig = TimerTrigger(Nano($(esc(dt)))) # does this need to be escaped?
         @loop $(esc(name)) trig $(esc(init)) $(esc(loop)) $(esc(final))
     end
 end

@@ -73,8 +73,6 @@ function loop_daemon(dmn)
     # sleep(0.001) # temporary solution
 end
 
-#TODO:
-struct Y2KException <: Exception end # -> wait for now() to wrap
 
 
 #---------------------- sleep functions ----------------------#
@@ -181,33 +179,3 @@ function _every(dt, name, init, loop, final)
     end
 end
 
-
-# macro at(hz, ex) :() end
-# macro at(hz, name, ex) :() end
-# macro at(hz, init, loop, final) :() end
-# macro at(hz, name, init, loop, final)
-#     return quote
-#         timer = Topic(Nanos($hz))
-#         rtk_add(timer)
-#         @loop $name $(esc(ex)) rtk_rm(timer)
-#         @on timer $name $(esc(ex))
-#     end
-# end
-
-# macro at(hz, ex)
-#     name = "at $hz"
-#     return quote
-#         ns = Nanos($hz)
-#         # make timer -> attatch to taskdaemon (lock, start/stop)
-#         timer = Topic(ns)
-#         add!(ReactiveToolkit.daemon, timer)
-
-#         @loop $name begin
-#             wait(timer)
-#             $(esc(ex))
-#         end begin
-#             # finalizer -> remove from taskdaemon (lock, start/stop)
-#             rm!(ReactiveToolkit.daemon, timer)
-#         end
-#     end
-# end

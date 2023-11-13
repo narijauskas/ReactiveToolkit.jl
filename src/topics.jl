@@ -107,6 +107,8 @@ function show(io::IO, x::Topic{T}) where {T}
     print(io, "Topic{$T}: $(x[])")
 end
 
+Base.eltype(::Type{Topic{T}}) where {T} = T
+
 # for multiple conditions:
 # sum(x.conditions; init = 0) do cond
 #     @lock cond notify(cond, arg; kw...)

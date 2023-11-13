@@ -5,7 +5,8 @@ struct Nano
 end
 Nano(x::Nano) = x
 Nano(x::Number) = Nano(round(UInt64, abs(x)))
-#TODO: Nano(x::DateTime) = ...
+Nano(x::Dates.Nanosecond) = Nano(x.value)
+Nano(x::Dates.AbstractTime) = Nano(Nanosecond(x))
 #TODO: Nano(x::Unitful.Unit) = ...
 
 now()       = Nano(time_ns())

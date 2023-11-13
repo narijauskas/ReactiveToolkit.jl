@@ -12,6 +12,7 @@ struct TaskDone   <: TaskState end # task has completed - most likely stopped ma
 TaskState(::Nothing) = NoTask()
 TaskState(x) = isdefined(x, :task) ? istaskfailed(x.task) ? TaskFailed() : istaskdone(x.task) ? TaskDone() : TaskActive() : NoTask()
 isactive(x) = TaskState(x) isa TaskActive
+# isactive -> istaskactive ?
 task_state(x) = TaskState(x)
 
 show(io::IO, ::NoTask)     = print(io, "[no task]" |> crayon"bold" |> crayon"dark_gray")
@@ -86,6 +87,35 @@ idstring(task::Task) = string(convert(UInt, pointer_from_objref(task)), base = 6
 
 isenabled(x) = isequal(x.enabled, true)
 
+# function kill(::WaitForExternal, tk::LoopTask)
+# rtk_warn("$tk is waiting on an external condition to complete. ",
+#             "It will not be rescheduled, but will remain active until ",
+#             "the task encounters an error or the condition is met once again.")
+            # "consider implementing a custom WaitFor type and wait/notify/kill methods"
+# end
+
+# WaitForCondition
+# WaitForAbstract
+# WaitForTimer
+# WaitForTopic
+# WaitForExternal
+
+# function kill(::ConditionTrigger, tk::LoopTask)
+#     rtk_info("$tk has been asked to stop")
+#     notify(tk, false) # notify task without calling user code
+# end
+
+# function kill(tk::LoopTask)
+#     @atomic tk.enabled = false
+#     if !isactive(tk)
+#         rtk_warn("$tk is not active")
+#     else
+#         kill(tk.trigger, tk)
+#     end
+#     yield() # maybe. let the task quit, messages print
+#     nothing
+# end
+
 function kill(tk::LoopTask)
     @atomic tk.enabled = false
     if !isactive(tk)
@@ -105,14 +135,22 @@ function kill(tk::LoopTask)
     nothing
 end
 
+# document these as default fallbacks - maybe have them print a warning if called?
 wait(trig::AbstractTrigger) = true
 notify(trig::AbstractTrigger, arg=true; kw...) = nothing
+
+
 wait(trig::ConditionTrigger) = @lock trig.cond wait(trig.cond)
 notify(trig::ConditionTrigger, arg=true; kw...) = @lock trig.cond notify(trig.cond, arg; kw...)
 # wait(trig::TimerTrigger) = sleep(0.001) #TODO: make this a bit more intelligent
 # notify(trig::TimerTrigger, arg=true; kw...) = nothing
 
+# notifying a task is really only used by the kill mechanisms
+# does nothing by default
+# ideally will unblock whatever the task is waiting on
 notify(tk::LoopTask, arg=true; kw...) = notify(tk.trigger, arg; kw...)
+
+# waiting on a task is dispatched by calling wait on the trigger
 function wait(tk::LoopTask)
     if wait(tk.trigger)
         @atomic tk.n_calls += 1
@@ -160,3 +198,14 @@ function _loop(name, trig, init_ex, loop_ex, final_ex)
         tk # macro results in LoopTask object
     end
 end
+
+
+# @loop "serial listener" WaitForSerial() begin
+#     readline(port) # blocking
+# end
+
+# function Base.kill(::WaitForSerial, tk::LoopTask)
+#     rtk_info("$tk has been asked to stop")
+#     close(tk.port)
+#     notify(tk, false) # notify task without calling user code
+# end

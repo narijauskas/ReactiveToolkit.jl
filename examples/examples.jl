@@ -51,3 +51,8 @@ end
 
 # but this requires the user to create and open the port, and we have to remember to close the port when we're done
 # so let's make a function that does all that for us
+
+
+@every Minute(1) begin
+    print("the time is now $(Dates.now()), remember to take a break!")
+end

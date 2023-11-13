@@ -100,8 +100,6 @@ end
     end
     @test !isactive(tk)
     @test istaskdone(tk.task)
-    # sleep(1) # TODO: a smarter way to handle compile time
-    # wait for task to start, kill, wait to stop, make new task
 
     # reactive triggering
     tk = @on x y[] = x[]
@@ -223,11 +221,11 @@ end
     @test y[] == 0
     @test x[] != y[]
     y[] = 2
-    yield()
+    sleep(0.001)
     @test x[] == 2
     @test x[] == y[]
     y[] = 3
-    yield()
+    sleep(0.001)
     @test x[] == 3
     @test x[] == y[]
     kill(tk)

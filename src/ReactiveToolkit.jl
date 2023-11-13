@@ -2,13 +2,14 @@ module ReactiveToolkit
 
 
 using Crayons
-using Sockets
-using Sockets: InetAddr
-using Unitful
+using Sockets # only for UDP
+using Sockets: InetAddr # only for UDP
+using Unitful # not strictly necessary, make Ext?
 using MacroTools: @capture
+using Base.Threads: Condition
 using Base.Threads: @spawn
 export @spawn # because I got tired of doing this every time
-using Base.Threads: Condition
+
 import Dates
 import Dates: canonicalize, Nanosecond
 
@@ -92,6 +93,9 @@ export rtk_init
 export rtk_tasks
 export rtk_status
 export rtk_print
+
+# kill_all
+# clean
 
 # provides tools to list and manage tasks, topics and interfaces
 # someday: generate system graph (at least for run triggering)
