@@ -1,7 +1,7 @@
 using ReactiveToolkit, Test
 using ReactiveToolkit: isactive
 
-delay() = sleep(0.3)
+delay() = sleep(0.2)
 
 @testset "@topic construction" begin
 
@@ -85,21 +85,155 @@ end
     @topic x = 0
     @topic y = 0
 
-    # starting a task
+    # starting/stopping a task
     tk = @on x y[] = x[]
-    delay()
+    while !isactive(tk)
+        sleep(0.1)
+    end
     @test isactive(tk)
+    @test istaskstarted(tk.task)
+    @test x[] == 0
+    @test y[] == 0
+    kill(tk)
+    while isactive(tk)
+        sleep(0.1)
+    end
+    @test !isactive(tk)
+    @test istaskdone(tk.task)
+    # sleep(1) # TODO: a smarter way to handle compile time
+    # wait for task to start, kill, wait to stop, make new task
 
     # reactive triggering
+    tk = @on x y[] = x[]
+    delay()
     x[] = 1
+    sleep(0.001)
     @test y[] == 1
     x[] = 2
+    sleep(0.001)
     @test y[] == 2
     x[] = 3
+    sleep(0.001)
     @test y[] == 3
 
-    # killing a task
+    # kill the task
     kill(tk)
     delay()
     @test !isactive(tk)
+end
+
+
+# @testset "@every macro" begin
+#     # test a polling reaction
+#     @topic x = 0
+#     @topic y = 0
+
+#     # starting a task
+#     tk = @every millis(10) y[] = x[]
+#     delay()
+#     @test isactive(tk)
+
+#     # reactive triggering
+#     x[] = 1
+#     delay()
+#     @test y[] == 1
+#     x[] = 2
+#     delay()
+#     @test y[] == 2
+#     x[] = 3
+#     delay()
+#     @test y[] == 3
+
+#     # kill the task
+#     kill(tk)
+#     delay()
+#     @test !isactive(tk)
+# end
+
+@testset "@every macro" begin
+
+    # make a topic
+    @topic x = 0
+    # make a task that should update faster than any OS scheduler allows
+    tk = @every micros(100) x[] = x[] + 1
+    delay() # let the task start up
+    @test isactive(tk)
+    x[] = 0
+    sleep(0.1)
+    @test x[] >= 1000
+    @test x[] < 2000
+    sleep(0.1)
+    @test x[] >= 2000
+    @test x[] < 3000
+
+    # kill the task
+    kill(tk)
+    delay()
+    @test !isactive(tk)
+end
+
+
+@testset "chaining tasks" begin
+
+    @topic x = 0
+    @topic y = 0
+    @topic z = 0.0
+
+    tk1 = @every millis(1) x[] = x[] + 1
+    tk2 = @on x y[] = x[]
+    tk3 = @on y z[] = sin(y[])
+    tks = [tk1, tk2, tk3]
+    delay()
+
+    @test z[] == sin(y[])
+    z_last = z[]
+    delay()
+    @test z[] != z_last
+    @test z[] == sin(y[])
+    z_last = z[]
+    delay()
+    @test z[] != z_last
+    @test z[] == sin(y[])
+
+    # kill_all()
+    kill.(tks)
+    delay()
+    @test !any(isactive.(tks))
+    # @test !isactive(tk)
+end
+
+@testset "initializers/finalizers" begin
+    # initializers/finalizers
+    @topic x = 0
+    @topic y = 0
+
+    @test x[] == 0
+
+    tk = @on y begin # initializer
+        x[] = 1
+    end begin # loop
+        x[] = y[]
+    end begin # finalizer
+        x[] = 7
+    end
+
+    delay()
+    @test isactive(tk)
+    @test x[] == 1
+    @test y[] == 0
+    @test x[] != y[]
+    y[] = 2
+    yield()
+    @test x[] == 2
+    @test x[] == y[]
+    y[] = 3
+    yield()
+    @test x[] == 3
+    @test x[] == y[]
+    kill(tk)
+    delay()
+    @test !isactive(tk)
+    @test x[] == 7
+    @test y[] == 3
+    @test x[] != y[]
 end
