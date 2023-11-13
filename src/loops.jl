@@ -44,6 +44,7 @@ TimerTrigger(dt::Nano) = TimerTrigger(dt, now()+dt)
 mutable struct LoopTask
     name::String
     trigger::AbstractTrigger
+    # waitfor::WaitForAbstract
     @atomic enabled::Bool
     const t_start::Nano
     @atomic t_last::Union{Nano,Nothing}
@@ -99,6 +100,12 @@ isenabled(x) = isequal(x.enabled, true)
 # WaitForTimer
 # WaitForTopic
 # WaitForExternal
+
+# AbstractWait
+# TopicWait
+# TimerWait
+# ExternalWait
+# ConditionWait
 
 # function kill(::ConditionTrigger, tk::LoopTask)
 #     rtk_info("$tk has been asked to stop")

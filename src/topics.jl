@@ -250,30 +250,6 @@ echo(x::AbstractTopic) = @on x "echo $(x.name)" println(x.name, ": ", x[])
 # end
 
 
-# macro on(x, loop)
-#     _on(x, "@on $x", :(), loop, :())
-# end
-
-# macro on(x, name, loop)
-#     _on(x, name, :(), loop, :())
-# end
-
-# macro on(x, init, loop, final)
-#     _on(x, "@on $x", init, loop, final)
-# end
-
-# macro on(x, name, init, loop, final)
-#     _on(x, name, init, loop, final)
-# end
-
-
-
-# macro on(x, init, loop, final)
-#     name = "@on $x"
-#     :(@on $(esc(x)) $name $(esc(init)) $(esc(loop)) $(esc(final)))
-# end
-# macro on(x, name, ex) :(@on $x $name () $ex ()) end
-# macro on(x, ex) esc(:(@on $x () $ex ())) end
 
 
 

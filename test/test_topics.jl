@@ -120,33 +120,38 @@ end
     @test !isactive(tk)
 end
 
+@testset "multiple @on tasks" begin
+    @topic x = 0
+    @topic y = 0
+    @topic z = 0
 
-# @testset "@every macro" begin
-#     # test a polling reaction
-#     @topic x = 0
-#     @topic y = 0
+    tk1 = @on x y[] = x[]
+    tk2 = @on x z[] = x[]
+    delay()
 
-#     # starting a task
-#     tk = @every millis(10) y[] = x[]
-#     delay()
-#     @test isactive(tk)
+    x[] = 1
+    sleep(0.001)
+    @test x[] == 1
+    @test y[] == 1
+    @test z[] == 1
 
-#     # reactive triggering
-#     x[] = 1
-#     delay()
-#     @test y[] == 1
-#     x[] = 2
-#     delay()
-#     @test y[] == 2
-#     x[] = 3
-#     delay()
-#     @test y[] == 3
+    kill(tk2)
+    delay()
+    x[] = 2
+    sleep(0.001)
+    @test x[] == 2
+    @test y[] == 2
+    @test z[] == 1
 
-#     # kill the task
-#     kill(tk)
-#     delay()
-#     @test !isactive(tk)
-# end
+    kill(tk1)
+    delay()
+    x[] = 3
+    sleep(0.001)
+    @test x[] == 3
+    @test y[] == 2
+    @test z[] == 1
+end
+
 
 @testset "@every macro" begin
 
@@ -177,10 +182,11 @@ end
     @topic y = 0
     @topic z = 0.0
 
-    tk1 = @every millis(1) x[] = x[] + 1
+    tk1 = @every millis(10) x[] = x[] + 1
     tk2 = @on x y[] = x[]
     tk3 = @on y z[] = sin(y[])
     tks = [tk1, tk2, tk3]
+    delay()
     delay()
 
     @test z[] == sin(y[])
@@ -234,4 +240,65 @@ end
     @test x[] == 7
     @test y[] == 3
     @test x[] != y[]
+end
+
+
+
+# @testset "@every macro - polling" begin
+#     # test a polling reaction
+#     @topic x = 0
+#     @topic y = 0
+
+#     # starting a task
+#     tk = @every millis(10) y[] = x[]
+#     delay()
+#     @test isactive(tk)
+
+#     # reactive triggering
+#     x[] = 1
+#     delay()
+#     @test y[] == 1
+#     x[] = 2
+#     delay()
+#     @test y[] == 2
+#     x[] = 3
+#     delay()
+#     @test y[] == 3
+
+#     # kill the task
+#     kill(tk)
+#     delay()
+#     @test !isactive(tk)
+# end
+
+@testset "making 100 tasks by loop" begin
+    x = Topic("x", 0)
+    y = [Topic("y$i", 0) for i in 1:100]
+    # tasks = [(@on x y[i][] = x[]) for i in 1:100]
+    tasks = [(@on x yi[] = x[]) for yi in y]
+    delay()
+    delay()
+
+    @test sum([yx[] == x[] for yx in y]) == 100
+    x[] = 1
+    sleep(0.01)
+    @test sum([yx[] == x[] for yx in y]) == 100
+    x[] = 2
+    sleep(0.001)
+    @test sum([yx[] == x[] for yx in y]) == 100
+    kill(tasks[3])
+    delay()
+    x[] = 3
+    sleep(0.001)
+    @test sum([yx[] == x[] for yx in y]) == 99
+    kill.(tasks[1:50])
+    delay()
+    x[] = 4
+    sleep(0.001)
+    @test sum([yx[] == x[] for yx in y]) == 50
+    kill.(tasks)
+    delay()
+    x[] = 5
+    sleep(0.001)
+    @test sum([yx[] == x[] for yx in y]) == 0
 end

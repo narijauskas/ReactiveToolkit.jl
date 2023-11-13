@@ -56,65 +56,7 @@ Task Control:
     tasks have a status: runnable(active)/failed/done
     tasks have an id: stop!(taskid)
 =#
-#------------------------------------ signals ------------------------------------#
 
-x = Signal(1)
-x = Signal{Int}(1)
-
-x[] = 1
-x[] = 1.0
-
-y = x[]
-
-# these should throw an error:
-# (at least temporarily?)
-z = Signal(x)
-z = Signal(Signal(1))
-
-# timer signal
-# () -> t
-# notified on interval (taskdaemon? better scheduler?)
-# used as kernels for every()
-
-# tx = Hz(10)
-# notify(tx)
-# kill!(tx)
-
-#------------------------------------ tasks ------------------------------------#
-# return ReactiveTask - a wrapper for the underlying task, & any signals that it listens to
-# store in a global task list
-    # used to generate graph
-    # used to kill tasks
-    # accept name as kwarg
-    # show overview, if running, etc.
-
-on(f, x; name="foo")
-kill!(RTk.tasks["foo"])
-
-#= kwargs
-    - taskref?
-    - task name?
-    - benchmarking?
-=# 
-
-on(x) do
-    # on updates to signal x
-    f(...)
-end
-
-every(Hz) do
-    # on periodic interval
-    f(...)
-end
-
-always(x) do
-    # while signal is active, no rate limiter
-    f(...)
-end
-
-
-# for debug/overview:
-# stacktrace(task) or status(task)
 
 #------------------------------------ operators ------------------------------------#
 # signal -> signal (with an internal task)
@@ -180,16 +122,6 @@ end
 # show active/failed nodes
 
 #------------------------------------ other ------------------------------------#
-
-
-#= every is equivalent to
-- make a signal which gets updated periodically by taskdaemon
-    - check all times, or sort?
-- on that signal, do a thing
-=#
-
-
-
 
 # RepeatingTask - [active]
 # repeats every: Hz

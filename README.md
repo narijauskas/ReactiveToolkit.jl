@@ -7,6 +7,15 @@ If we want to set up a publisher to run periodically, and a subscriber to react 
 
 useful for robotics, hardware interaction, and controls.
 
+## Quickstart
+Install julia, and add this package. It's recommended to start julia with mulitiple threads: `julia -t auto`.
+
+How to make topics?
+How to change topic value?
+How to react to topics?
+How to react to time?
+How to react to anything?
+
 ## Disclaimers
 The API is still experimental. Please expect it to change.
 
@@ -43,6 +52,26 @@ This will be increasingly less of an issue as julia's garbage collector evolves 
 and, how does asyncrhonous programming work in julia?
 
 <!--  What is metaprogramming? -->
+
+
+## @topic - Sharing Data Between Tasks
+sharing data between tasks
+implemented as a 2 element circular buffer with mutual exclusion enforced on writes, but allowing unlimited concurrent reads, which don't pop the value from the buffer.
+
+This can be thought of as a Last-In, Only-Out queue.
+
+Topics can be any type supported by Julia, including primitives, abstracts, custom structs, and variable-length arrays.
+
+The `@topic` macro automates this process. It creates a topic bound to a variable with the name of the variable.
+
+```julia
+@topic name::T = value
+@topic name = value
+```
+
+Topics must always have a value.
+
+
 
 ## @every - Timed Repetition
 <!-- `@at` was also considered, but makes less sense beyond Hz -->
@@ -143,22 +172,6 @@ Note that this example assumes a microcontroller with non-UART based native USB 
 Also note that serial transfers have a non-negligible latency, so this design pattern is not a good idea above 200Hz.
 
 
-## Sharing Data (@topic)
-sharing data between tasks
-implemented as a 2 element circular buffer with mutual exclusion enforced on writes, but allowing unlimited concurrent reads, which don't pop the value from the buffer.
-
-This can be thought of as a Last-In, Only-Out queue.
-
-Topics can be any type supported by Julia, including primitives, abstracts, custom structs, and variable-length arrays.
-
-The `@topic` macro automates this process. It creates a topic bound to a variable with the name of the variable.
-
-```julia
-@topic name::T = value
-@topic name = value
-```
-
-Topics must always have a value.
 
 ## Reactivity (@on)
 reacting to tasks

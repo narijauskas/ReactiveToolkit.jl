@@ -60,6 +60,25 @@ end
 
 
 
+# #DOC: list reactions in the global index (ie. those created by @reaction)
+# function list()
+#     global index
+#     foreach(enumerate(index)) do (i, axn)
+#         println("[$i] - $axn")
+#     end
+#     return nothing
+# end
+
+# #DOC: remove inactive reactions from the index
+# function clean!()
+#     global index
+#     filter!(index) do axn
+#         TaskState(axn) == TaskActive()
+#     end
+#     return nothing
+# end
+
+
 
 
 

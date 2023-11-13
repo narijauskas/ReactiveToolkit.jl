@@ -9,8 +9,8 @@ using ReactiveToolkit
 @topic x::Float64
 @topic x = 1
 @topic x::Float64 = 1
-x = Topic(1)
-x = Topic{Float64}(1)
+x = Topic("x", 1)
+x = Topic{Float64}("x", 1)
 
 ## --------------------------- using topics --------------------------- ##
 
@@ -36,25 +36,25 @@ x[] = 2
 ## --------------------------- repeating tasks --------------------------- ##
 # we aren't limited to reactions - can repeat on time
 
-@at Hz(1)
-@every Hz(1)
-@every Minute(1)
+@at Hz(1) do_the_thing()
+@every Hz(1) do_the_thing()
+@every Minute(1) do_the_thing()
 
 # --------------------------- one-shot tasks --------------------------- #
 # to run something once after a precise delay:
 
-@after now()
-@after Time("23:15:00")
-@after Minute(1)
-@after nanos(10)
+@after now() do_the_thing()
+@after Time("23:15:00") do_the_thing()
+@after Minute(1) do_the_thing()
+@after nanos(10) do_the_thing()
 
 
 
-@at Time("23:15:00")
-@at now()
+# @at Time("23:15:00")
+# @at now()
 
-@in Minute(1)
-@in nanos(10)
+# @in Minute(1)
+# @in nanos(10)
 
 
 # note: can always also use @spawn task() to just schedule and run task() immediately
@@ -66,10 +66,10 @@ x[] = 2
 
 # --------------------------- advanced example --------------------------- #
 
-@after Minute(1) begin
+@after seconds(5) begin
     i = 1
-    task = @every Second(1) println!("hello #$(i+=1)")
-    @after Second(10) kill!(task)
+    task = @every seconds(1) println!("hello #$(i+=1)")
+    @after seconds(8) kill(task)
 end
 
 
@@ -117,70 +117,4 @@ close(port)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-using Base.Threads
-using Base.Threads: @spawn
-
-function maketask()
-    cond = Threads.Condition()
-    fxn = ()->begin
-        for ix in 1:10
-            val = lock(cond.lock) do
-                wait(cond)
-            end
-            println("value: $val")
-        end
-    end
-    task = @spawn fxn()
-    return task, cond
-end
-
-tk, cond = maketask()
-
-
-tk
-lock(cond.lock) do
-    notify(cond, "foo"; error=true)
-end
-
-notify(cond, "yeet")
-
-# on kill?
-notify(cond)
-notify(cond, STOP_TASK)
-notify(cond, STOP_TASK; error = true)
-
-
-
-
-function maketask()
-    cond = Threads.Condition()
-    fxn = ()->begin
-        for ix in 1:10
-            val = lock(cond.lock) do
-                wait(cond)
-            end
-            println("value: $val")
-        end
-    end
-    task = @spawn fxn()
-    return task, cond
-end
-
-
-try
-    
-catch e
-    e isa KillTaskException
-end
 
