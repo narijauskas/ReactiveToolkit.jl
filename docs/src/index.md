@@ -29,7 +29,7 @@ sin(x[]) # use the value of x
 
 
 
-T can be anything you can represent in julia: primitive types like UInt16, abstract types like Number, dicts or structs encoding custom message types, variable length arrays, images, simulation models, symbolic differential equations, or even julia source code. It can also be of type Any.
+T can be anything you can represent in julia: primitive types like `UInt16`, abstract types like `Number`, dicts or structs encoding custom message types, variable length arrays, images, simulation models, symbolic differential equations, or even julia source code. It can also be of type `Any`.
 
 ```julia
 @topic x = Trajectory{}
@@ -63,6 +63,8 @@ For more flexible messages:
 
 If we lean into the abstraction, we can do things like this:
 ```julia
+using ReactiveToolkit
+using CairoMakie
 
 @topic fig = Figure()
 

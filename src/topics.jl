@@ -27,7 +27,15 @@ mutable struct Topic{T} <: AbstractTopic{T}
     const lock::ReentrantLock
 end
 
-function Topic{T}(name, v::T) where {T}
+
+# Topic(name, v::T) where {T} = Topic{T}(name, v)
+# Topic{T}(name, v::T) where {T} = Topic{T}(name, convert(T, v))
+
+function Topic(name, v::T) where {T}
+    Topic{T}(name, v)
+end
+
+function Topic{T}(name, v) where {T}
     Topic{T}(name, convert(T, v))
 end
 
@@ -59,7 +67,7 @@ function _topic(ex)
         end
     elseif @capture(ex, name_ = value_)
         quote
-            $(esc(name)) = Topic{Any}($("$name"), $value)
+            $(esc(name)) = Topic($("$name"), $value)
         end
     else
         quote
@@ -169,77 +177,6 @@ end
 # RTk.topics.led_state
 # RTk.topics[:led_state]
 # RTk.topics[5410]
-
-#------------------------------------ UDP Topics ------------------------------------#
-
-
-mutable struct UDPTopic{T} <: AbstractTopic{T}
-    const name::String
-    @atomic value::T
-    @atomic t_last::Nano
-    @atomic ip_last::Sockets.InetAddr
-    const cond::Threads.Condition
-    const udp::UDPMulticast
-    listener::LoopTask
-    function UDPTopic{T}(name, port, value) where {T}
-        new{T}(name,
-            convert(T, value),
-            now(),
-            InetAddr(Sockets.localhost, port),
-            Threads.Condition(),
-            UDPMulticast(ip"230.8.6.7", port),
-        ) |> listen!
-    end
-end
-
-UDPTopic(name, port, value::T) where {T} = UDPTopic{T}(name, port, value)
-
-show(io::IO, x::UDPTopic{T}) where {T} = print(io, "UDPTopic{$T}: $(x[])")
-
-function show(io::IO, ::MIME"text/plain", x::UDPTopic{T}) where {T}
-    print(io, "UDPTopic{")
-    print(io, CR_GRAY("$T"), "}")
-    println(io, CR_BOLD(" \"$(x.name)\" "))
-    # print(io, "UDPTopic{$T}: $(x[])")
-    # println(io)
-    # print(io, " - $(x.last_ip)")
-    # println(io, " - $(x.last_t)")
-    println(io, "  value: ", x.value)
-    println(io, "  updated: ", x.t_last |> ago)
-    println(io, "  source: $(x.ip_last.host):$(x.ip_last.port)")
-    println(io, "  udp:  ", x.udp)
-    println(io, "  task: ", x.listener)
-end
-
-function listen!(x::UDPTopic{T}) where {T}
-    isdefined(x, :listener) && kill(x.listener)
-    isopen(x.udp) || open(x.udp)
-    x.listener = @loop "$(x.name) listener" begin
-        #FUTURE: try/catch?
-        ip, bytes = recvfrom(x.udp) # blocks
-        @atomic x.value = decode(T, bytes)
-        @atomic x.t_last = now()
-        @atomic x.ip_last = ip
-        notify(x)
-    end
-    return x
-end
-
-@inline Base.getindex(x::UDPTopic) = x.value
-
-@inline function Base.setindex!(x::UDPTopic, v)
-    @atomic x.value = v
-    send(x.udp, encode(x.value))
-    return x.value
-end
-
-wait(x::UDPTopic) = @lock x.cond wait(x.cond)
-notify(x::UDPTopic, arg=true; kw...) = @lock x.cond notify(x.cond, arg; kw...)
-
-encode(v::T) where {T} = "$v"
-decode(::Type{String}, bytes) = String(bytes)
-decode(::Type{T}, bytes) where {T<:Number} = parse(T, String(bytes))
-# decode(::Type{T}, bytes) where {T} = T()
 
 
 

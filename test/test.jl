@@ -15,6 +15,26 @@ x[] = 2
 
 
 
+
+# @topic x::Int # should throw error
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 using ReactiveToolkit, Sockets
 using Base.Threads: @spawn
 rtk_init()

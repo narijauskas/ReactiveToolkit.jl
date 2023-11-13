@@ -12,6 +12,7 @@ struct TaskDone   <: TaskState end # task has completed - most likely stopped ma
 TaskState(::Nothing) = NoTask()
 TaskState(x) = isdefined(x, :task) ? istaskfailed(x.task) ? TaskFailed() : istaskdone(x.task) ? TaskDone() : TaskActive() : NoTask()
 isactive(x) = TaskState(x) isa TaskActive
+task_state(x) = TaskState(x)
 
 show(io::IO, ::NoTask)     = print(io, "[no task]" |> crayon"bold" |> crayon"dark_gray")
 show(io::IO, ::TaskActive) = print(io, "[active]"  |> crayon"bold" |> crayon"yellow")

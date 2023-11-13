@@ -55,16 +55,12 @@ export nanos, micros, millis, seconds # for now
 export ago
 # export Nano
 
-# UDP multicast helpers for communication
-include("udp.jl")
-export UDPMulticast
-export send, recv
-
 
 # infinite while loops with extra steps
 include("loops.jl")
 export @loop
 export kill
+export task_state
 # tk = @loop "uncomment to segfault julia" sleep(1)
 
 # sharing data between tasks
@@ -76,6 +72,12 @@ export @on
 export @topic
 export _topic #temporary
 #MAYBE: onall
+
+
+# UDP multicast helpers for communication
+include("udp.jl")
+export UDPMulticast
+export send, recv
 
 
 # include("timing.jl")

@@ -78,7 +78,7 @@ _every(dt, init, loop, final)   = _every(dt, "@every $dt", init, loop, final)
 _every(dt, name, loop)          = _every(dt, name, :(), loop, :())
 
 function _every(dt, name, init, loop, final)
-    #augment finalizer to remove timer from daemon
+    # augment finalizer to remove timer from daemon?
     # _final = quote
     #     rm!(ReactiveToolkit.DAEMON, timer)
     #     $(esc(final))
