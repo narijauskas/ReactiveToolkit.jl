@@ -81,8 +81,14 @@ end
 end
 
 @testset "topic capacity" begin
-    x = Topic{Number}(0; size = 100)
-    @test 100 == length(x) skip = true
-    @test x[:] == zeros(100)
-end
+    N = 20
+    x = Topic{Number}(0; size = N)
+    @test N == length(x)
+    @test x[:] == zeros(N)
 
+    for i in 1:N
+        x[] = i
+        sleep(0.001)
+        @test x[:] == vcat(i:-1:1, zeros(N-i))
+    end
+end

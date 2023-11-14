@@ -1,52 +1,4 @@
 
-## ------------------------------------ serial monitor ------------------------------------ ##
-using ReactiveToolkit
-using LibSerialPort
-
-function serial_io(name)
-    sp = SerialPort(name)
-    open(sp)
-
-    @repeat "serial monitor" begin
-        println(stdout, readline(sp))
-    end begin
-        isopen(sp) && close(sp)
-    end
-
-    console = Signal{String}("")
-
-    @on console begin
-        write(sp, console[]*"\n")
-    end
-
-    return console, sp
-end
-
-console, port = serial_io("COM6")
-# serial port 
-# open serial port
-# repeat "serial monitor" begin
-    # println(readline(sp))
-
-
-function monitor(port_name)
-    sp = SerialPort(port_name)
-
-    tk = @loop "$port_name monitor" begin
-        open(sp)
-    end begin
-        println(stdout, readline(sp))
-    end begin
-        isopen(sp) && close(sp)
-    end
-    return tk, sp
-end
-
-task, port = monitor("COM3")
-# either can be used to stop the task and close the port
-kill(task)
-close(port)
-# task = monitor("dev/ttyUSB0")
 
 
 ## ------------------------------------ controls example ------------------------------------ ##
@@ -393,9 +345,9 @@ end
 
 
 
-bar(x::typeof(1.0u"s")) = "Float seconds"
-bar(x::Quantity) = bar(x|>Float64|>u"s")
-bar(x) = "nope"
+foo(x::typeof(1.0u"s")) = "Float seconds"
+foo(x::Quantity) = foo(x|>Float64|>u"s")
+foo(x) = "nope"
 
 
 T = typeof(1.0u"s")

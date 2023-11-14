@@ -84,7 +84,9 @@ end
 @inline function getindex(x::Topic, ::Colon)
     # mutual exclusion enforced
     @lock x.lock begin
-        idx = vcat(x.rptr:-1:1, x.capacity:-1:x.rptr+2)
+        r = x.rptr
+        c = x.capacity
+        idx = (r == c ? [r:-1:2;] : [r:-1:1; c:-1:r+2])
         return @inbounds x.buffer[idx]
     end
 end
@@ -117,6 +119,7 @@ function show(io::IO, x::Topic{T}) where {T}
 end
 
 Base.eltype(::Type{Topic{T}}) where {T} = T
+Base.length(x::Topic) = x.capacity - 1
 
 # for multiple conditions:
 # sum(x.conditions; init = 0) do cond

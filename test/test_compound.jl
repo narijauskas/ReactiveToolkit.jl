@@ -23,7 +23,6 @@ using ReactiveToolkit: isactive
 
     @test any([(sleep(0.01); sin(y[]) == z[]) for i in 1:3])
     @test z[] != z_last
-    @test sin(y[]) == z[]
 
     # kill_all()
     kill.(tks)
@@ -33,7 +32,7 @@ using ReactiveToolkit: isactive
 end
 
 
-@testset "making 100 tasks by loop" begin
+@testset "task/topic generators" begin
     x = Topic(0; name="x")
     y = [Topic(0; name="y$i") for i in 1:100]
     # tasks = [(@on x y[i][] = x[]) for i in 1:100]

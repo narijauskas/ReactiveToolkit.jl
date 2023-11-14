@@ -12,9 +12,8 @@ import Dates: canonicalize, Nanosecond
 import Base: show
 import Base: isless, *, +, -, /
 import Base: sleep
-import Base: wait, notify
+import Base: kill, wait, notify
 import Base: setindex!, getindex
-import Base: kill
 import Base: isopen, open, close
 
 # only needd for UDP
@@ -26,6 +25,7 @@ import Base: isopen, open, close
 include("timing.jl")
 export now, ago
 export nanos, micros, millis, seconds # for now
+export microsleep, yieldsleep, flexsleep
 # export Nano
 
 # sharing data between tasks
@@ -43,17 +43,15 @@ export isactive
 # infinite while loops with extra steps
 include("loops.jl")
 export @loop
-export kill
-# tk = @loop "uncomment to segfault julia" sleep(1)
-
-include("on.jl")
-export echo
 export @on
-#MAYBE: onall
-
-include("every.jl")
 export @every
-#FUTURE: @in, @after
+export kill
+export echo
+#MAYBE: onall
+#FUTURE: @after, @once
+# tk = @loop "uncomment to segfault julia" sleep(1)
+# include("on.jl")
+# include("every.jl")
 
 # UDP multicast helpers for communication
 #TODO: remove UDP dependency for now
@@ -62,9 +60,6 @@ export @every
 # export send, recv
 # export UDPTopic
 # export listen!
-
-# include("timing.jl")
-# include("daemon.jl")
 
 
 

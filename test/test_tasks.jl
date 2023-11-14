@@ -77,6 +77,9 @@ end
     # make a topic
     @topic x = 0
     # make a task that should update faster than any OS scheduler allows
+    tk0 = @every micros(100) x[] = x[] + 1
+    start_stop(tk0) # let the machinery compile
+
     tk = @every micros(100) x[] = x[] + 1
     delay() # let the task start up
     @test isactive(tk)

@@ -25,21 +25,15 @@ rtk_err(str...)  = rtk_print(CR_INFO("rtk:error> "), str...)
 
 function rtk_register(tk::LoopTask)
     @lock TASK_LOCK push!(TASK_INDEX, tk)
-    nothing
-    # global TASK_LOCK
-    # global TASK_INDEX
-    # lock(TASK_LOCK) do
-    #     push!(TASK_INDEX, tk)
-    # end
-    # nothing
+    return nothing
 end
 
 rtk_tasks() = @lock TASK_LOCK return TASK_INDEX
-rtk_kill_all() = @lock TASK_LOCK foreach(kill, TASK_INDEX)
-rtk_n_active() = @lock TASK_LOCK sum(isactive.(TASK_INDEX))
+rtk_count() = @lock TASK_LOCK sum(isactive.(TASK_INDEX))
 rtk_clean() = @lock TASK_LOCK filter!(isactive, TASK_INDEX)
 # rtk_status() = return STATUS
 # rtk_topics()
+rtk_kill_all() = @lock TASK_LOCK foreach(kill, TASK_INDEX)
 
 # function rtk_init(; print_to_repl = true)
 #     global PRINT_TO_REPL = print_to_repl
@@ -79,6 +73,10 @@ rtk_clean() = @lock TASK_LOCK filter!(isactive, TASK_INDEX)
 
 
 
+
+# function PrintServer(;repl_rate=Hz(60))
+#     print_buffer = Signal{CircularBuffer{String}}()
+# end
 
 
 # global indices

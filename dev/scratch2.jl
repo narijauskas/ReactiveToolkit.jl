@@ -1,3 +1,21 @@
+
+@on (a,b,c) begin
+    println("either a,b, or c has been updated")
+end
+
+@onall (a,b,c) begin
+    println("a,b, and c have all been updated at least once")
+end
+
+# alternatively:
+@on all((a,b,c)) do_stuff()
+@on any((a,b,c)) do_stuff()
+
+# or even:
+abc = all((a,b,c)) # returns a compound topic/condition?
+# abc = flatten([a,b,c])
+@on abc do_stuff()
+
 #= Overview
 
 A framework for reactive programming which makes use of modern features of julia, namely atomic fields and task-based concurrency.

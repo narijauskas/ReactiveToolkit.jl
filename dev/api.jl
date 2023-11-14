@@ -23,6 +23,9 @@ x[] isa Int
 # set a value
 x[] = 2
 
+# dump the buffer
+x[:] isa Vector{Int}
+
 
 ## --------------------------- react to topics --------------------------- ##
 # topics have one more trick: we can react to changes
