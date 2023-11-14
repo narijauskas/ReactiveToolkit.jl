@@ -3,7 +3,6 @@ global const TASK_LOCK = ReentrantLock()
 global PRINT_TO_REPL::Bool = true
 # global const STATUS = UDPMulticast(ip"230.8.6.7", 5309)
 
-
 CR_GRAY = crayon"dark_gray"
 CR_BOLD = crayon"bold"
 CR_EMPH = crayon"italics"
@@ -34,6 +33,8 @@ rtk_clean() = @lock TASK_LOCK filter!(isactive, TASK_INDEX)
 # rtk_status() = return STATUS
 # rtk_topics()
 rtk_kill_all() = @lock TASK_LOCK foreach(kill, TASK_INDEX)
+
+# ------------------------------------ other ------------------------------------ #
 
 # function rtk_init(; print_to_repl = true)
 #     global PRINT_TO_REPL = print_to_repl

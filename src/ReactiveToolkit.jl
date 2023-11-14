@@ -50,8 +50,13 @@ export echo
 #MAYBE: onall
 #FUTURE: @after, @once
 # tk = @loop "uncomment to segfault julia" sleep(1)
-# include("on.jl")
-# include("every.jl")
+
+include("utils.jl")
+export rtk_init
+export rtk_tasks
+export rtk_status
+export rtk_print
+
 
 # UDP multicast helpers for communication
 #TODO: remove UDP dependency for now
@@ -62,12 +67,6 @@ export echo
 # export listen!
 
 
-
-include("utils.jl")
-export rtk_init
-export rtk_tasks
-export rtk_status
-export rtk_print
 
 # kill_all
 # clean

@@ -17,10 +17,7 @@ seconds(x)  = Nano(1e9x)
 
 
 show(io::IO, t::Nano) = print(io, "Nano $(t.ns)")
-# sleep(t::Nano) = sleep(t.ns/1e9)
-#MAYBE: since(t::Nano) = now() - t
-#MAYBE: until(t::Nano) = t - now()
-#MAYBE: freq(t::Nano) = (1e9/t.ns)u"Hz"
+
 
 #------------------- operators -------------------#
 isless(t1::Nano, t2::Nano) = isless(t1.ns, t2.ns)
@@ -33,14 +30,10 @@ isless(t1::Nano, t2::Nano) = isless(t1.ns, t2.ns)
 
 Dates.Nanosecond(t::Nano) = Nanosecond(t.ns)
 ago(t::Nano) = "$(Nanosecond(now()-t) |> canonicalize |> t->first(t.periods)) ago"
-# function since(t::Nano)
-#     dt = now() - t
-#     # 
-    
-#     dt >= 1.0u"hr"
-#     dt >= 1.0u"min"
-#     dt <= 1.0u"μs"
-# end
+#MAYBE:
+# since(t::Nano) = now() - t
+# until(t::Nano) = t - now()
+# freq(t::Nano) = (1e9/t.ns)u"Hz"
 
 
 
@@ -49,8 +42,7 @@ ago(t::Nano) = "$(Nanosecond(now()-t) |> canonicalize |> t->first(t.periods)) ag
 
 
 # regular sleep, most efficient, won't be accurate below 10ms, especially on Windows
-sleep(nanos::Nano) = sleep(nanos.ns/1e9)
-
+sleep(t::Nano) = sleep(t.ns/1e9)
 
 # Linux-only micro-sleep function, best for 5ms to 500us
 function microsleep(t::Nano)

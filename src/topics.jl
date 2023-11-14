@@ -1,5 +1,6 @@
 abstract type AbstractTopic{T} end
 
+#DOC:
 # for all topics:
 # """
 #     x[] = v
@@ -13,8 +14,7 @@ making topics:
 @topic x = 0
 
 =#
-
-#------------------------------------ Topics ------------------------------------#
+# ------------------------------------ Topic type ------------------------------------ #
 # implemented with a reentrant lock and a 2-element circular buffer
 
 mutable struct Topic{T} <: AbstractTopic{T}
@@ -57,25 +57,7 @@ Nothing types.
 
 # Quasihomoiconicity
 
-macro topic(ex)
-    _topic(ex)
-end
-
-function _topic(ex)
-    if @capture(ex, name_::T_ = value_)
-        quote
-            $(esc(name)) = Topic{$T}($(esc(value)); name = $("$name"))
-        end
-    elseif @capture(ex, name_ = value_)
-        quote
-            $(esc(name)) = Topic($(esc(value)); name = $("$name"))
-        end
-    else
-        quote
-            error("invalid topic definition")
-        end
-    end
-end
+# ------------------------------------ Topic functions ------------------------------------ #
 
 @inline function getindex(x::Topic)
     @inbounds return x.buffer[x.rptr]
@@ -121,11 +103,44 @@ end
 Base.eltype(::Type{Topic{T}}) where {T} = T
 Base.length(x::Topic) = x.capacity - 1
 
-# for multiple conditions:
-# sum(x.conditions; init = 0) do cond
-#     @lock cond notify(cond, arg; kw...)
-# end
 
+# ------------------------------------ @topic macro ------------------------------------ #
+
+macro topic(ex)
+    _topic(ex)
+end
+
+function _topic(ex)
+    if @capture(ex, name_::T_ = value_)
+        quote
+            $(esc(name)) = Topic{$T}($(esc(value)); name = $("$name"))
+        end
+    elseif @capture(ex, name_ = value_)
+        quote
+            $(esc(name)) = Topic($(esc(value)); name = $("$name"))
+        end
+    else
+        quote
+            error("invalid topic definition")
+        end
+    end
+end
+
+
+# ------------------------------------ other ------------------------------------ #
+#TODO: onany/onall
+# onany(f, xs...) # make a signal that waits for any, then notifies common?
+# @onall (x,y,z) ...
+# @onany (x,y,z) ...
+# @on (x,y,z) ... # could just make xs iterable?
+
+
+# for multiple conditions:
+# @inline function notify(x::Topic, arg=true; kw...)
+#     sum(x.conditions; init = 0) do cond
+#         @lock cond notify(cond, arg; kw...)
+#     end
+# end
 
 #= what's better?
 option 1:
@@ -140,52 +155,3 @@ option 2:
     @lock x.lock stuff
 =#
 
-
-
-
-
-
-#------------------------------------ other ------------------------------------#
-# function Base.notify(x::AbstractTopic, arg; kw...)
-#     lock(x.cond) do
-#         notify(x.cond, arg; kw...)
-#     end
-# end
-
-# function Base.wait(x::AbstractTopic)
-#     lock(x.cond) do
-#         wait(x.cond)
-#     end
-# end
-
-# function Sockets.recv(x::AbstractTopic)
-#     wait(x)
-#     return x[]
-# end
-
-
-
-
-# macro on(x, name, init, loop, final)
-#     x = esc(x)
-#     init = esc(init)
-#     loop = esc(loop)
-#     final = esc(final)
-#     return quote
-#         cond = Threads.Condition()
-#         # push!($(x).cond, cond)
-#         # @loop $name cond $(init) $(loop) $(final)
-#         push!(($x).conditions, cond)
-#         @loop $name cond $init $loop $final
-#     end
-# end
-
-
-
-
-
-#TODO: onany/onall
-# onany(f, xs...) # make a signal that waits for any, then notifies common?
-# @onall (x,y,z) ...
-# @onany (x,y,z) ...
-# @on (x,y,z) ... # could just make xs iterable?

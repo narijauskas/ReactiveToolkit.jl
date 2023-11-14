@@ -25,15 +25,9 @@ show(io::IO, ::TaskDone)   = print(io, "[ done ]"  |> crayon"bold" |> crayon"blu
 
 ## ------------------------------------ Conditions ------------------------------------ ##
 
-# struct NoCondition end #TODO: rename External
-# const ConditionUnion = Union{Threads.Condition, Condition, NoCondition}
-# #FUTURE: Have a RTkCondition type that holds upstreams for unlinking when task is done
-
 abstract type AbstractTrigger end
 
-
-abstract type WaitForAbstract
-end
+abstract type WaitForAbstract end
 
 
 
