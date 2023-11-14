@@ -1,6 +1,5 @@
 # compound tests which test multiple parts of the package working together
 using ReactiveToolkit, Test
-using ReactiveToolkit: isactive
 
 @testset "chaining tasks" begin
 

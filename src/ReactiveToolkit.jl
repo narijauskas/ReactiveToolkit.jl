@@ -35,7 +35,7 @@ export @topic
 
 # reactive task type
 include("tasks.jl")
-# export ReactiveTask
+export ReactiveTask
 export task_state
 export isactive
 # export debug

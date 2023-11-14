@@ -1,4 +1,4 @@
-global const TASK_INDEX = LoopTask[]
+global const TASK_INDEX = ReactiveTask[]
 global const TASK_LOCK = ReentrantLock()
 global PRINT_TO_REPL::Bool = true
 # global const STATUS = UDPMulticast(ip"230.8.6.7", 5309)
@@ -23,7 +23,7 @@ rtk_warn(str...) = rtk_print(CR_INFO("rtk:warn> "),  str...)
 rtk_err(str...)  = rtk_print(CR_INFO("rtk:error> "), str...)
 
 
-function rtk_register(tk::LoopTask)
+function rtk_register(tk::ReactiveTask)
     @lock TASK_LOCK push!(TASK_INDEX, tk)
     return nothing
 end

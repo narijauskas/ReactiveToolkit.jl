@@ -1,4 +1,13 @@
 
+#FIX: clean these up
+# document these as default fallbacks - maybe have them print a warning if called?
+wait(trig::WaitForAbstract) = true
+notify(trig::WaitForAbstract, arg=true; kw...) = nothing
+
+mutable struct WaitForExternal <: WaitForAbstract
+end
+
+
 # ------------------------------------ wait/notify/kill ------------------------------------ #
 
 # document these as default fallbacks - maybe have them print a warning if called?
@@ -38,7 +47,7 @@ _loop(name, trig, loop)         = _loop(name, trig, :(), loop, :())
 
 function _loop(name, trig, init_ex, loop_ex, final_ex)
     quote
-        local tk = LoopTask($(esc(name)), $trig) # partially initialized
+        local tk = ReactiveTask($(esc(name)), $trig) # partially initialized
         tk.task = @spawn begin
             try
                 rtk_info("$tk is starting")
@@ -57,7 +66,7 @@ function _loop(name, trig, init_ex, loop_ex, final_ex)
         end
         rtk_register(tk) # add to global task index
         yield() # allows the new loop task to run immediately. solid maybe
-        tk # macro results in LoopTask object
+        tk # macro results in ReactiveTask object
     end
 end
 
@@ -130,7 +139,7 @@ function wait(trig::TimerTrigger)
     return true
 end
 
-function kill(trig::TimerTrigger, tk::LoopTask)
+function kill(trig::TimerTrigger, tk::ReactiveTask)
     @atomic trig.enabled = false
     rtk_info("$tk has been asked to stop")
 end

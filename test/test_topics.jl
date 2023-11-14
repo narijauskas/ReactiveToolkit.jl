@@ -1,6 +1,4 @@
 using ReactiveToolkit, Test
-using ReactiveToolkit: isactive
-
 
 @testset "@topic construction" begin
 

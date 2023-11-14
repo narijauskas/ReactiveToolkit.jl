@@ -1,5 +1,4 @@
 using ReactiveToolkit, Test
-using ReactiveToolkit: isactive
 
 @testset "@on macro" begin
     @topic x = 0
@@ -10,6 +9,7 @@ using ReactiveToolkit: isactive
     while !isactive(tk)
         sleep(0.1)
     end
+    @test tk isa ReactiveTask
     @test isactive(tk)
     @test istaskstarted(tk.task)
     @test x[] == 0
