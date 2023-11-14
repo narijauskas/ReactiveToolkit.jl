@@ -55,8 +55,8 @@ function rtk_init(; print_to_repl = true)
 end
 
 
-
-
+# rtk_kill_all() = foreach(kill, LOOP_INDEX)
+# rtk_n_active() = sum(isactive.(LOOP_INDEX))
 
 
 

@@ -46,6 +46,7 @@ end
 struct Y2KException <: Exception end
 
 function wait(trig::TimerTrigger)
+    # add isenabled(trig) to while?
     while now() < trig.t_next
         flexsleep(trig.t_next - now())
     end

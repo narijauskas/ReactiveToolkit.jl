@@ -37,6 +37,22 @@ mutable struct TimerTrigger <: AbstractTrigger
 end
 TimerTrigger(dt::Nano) = TimerTrigger(dt, now()+dt)
 
+
+
+abstract type WaitForAbstract
+end
+
+# document these as default fallbacks - maybe have them print a warning if called?
+wait(trig::WaitForAbstract) = true
+notify(trig::WaitForAbstract, arg=true; kw...) = nothing
+# function kill(::ConditionTrigger, tk::LoopTask)
+#     rtk_info("$tk has been asked to stop")
+#     notify(tk, false) # notify task without calling user code
+# end
+
+mutable struct WaitForExternal <: WaitForAbstract
+end
+
 ## ------------------------------------ Loops ------------------------------------ ##
 # Wrap *any* code into an infinite while loop scheduled to run forever on any available thread.
 # This is a feature.
@@ -55,7 +71,7 @@ mutable struct LoopTask
 end
 
 show_task_id(tk) = show_task_id(tk, TaskState(tk))
-show_task_id( _, ::NoTask) = "[ --- no task --- ]" |> crayon"bold" |> crayon"dark_gray"
+show_task_id( _, ::NoTask)     = "[ --- no task --- ]" |> crayon"bold" |> crayon"dark_gray"
 show_task_id(tk, ::TaskActive) = "[$(idstring(tk)) - active]" |> crayon"bold" |> crayon"yellow"
 show_task_id(tk, ::TaskFailed) = "[$(idstring(tk)) - failed]" |> crayon"bold" |> crayon"red"
 show_task_id(tk, ::TaskDone)   = "[$(idstring(tk))  -  done]" |> crayon"bold" |> crayon"blue"
@@ -85,7 +101,7 @@ idstring(task::Task) = string(convert(UInt, pointer_from_objref(task)), base = 6
 # Base.show(io::IO, loop::Loop) = print(io, idstring(loop), " \"$(loop.name)\"")
 # Base.show(io::IO, loop::Loop) = print(io, "\"$(loop.name)\" ", idstring(loop))
 
-
+# maybe istaskenabled?
 isenabled(x) = isequal(x.enabled, true)
 
 # function kill(::WaitForExternal, tk::LoopTask)
@@ -107,55 +123,17 @@ isenabled(x) = isequal(x.enabled, true)
 # ExternalWait
 # ConditionWait
 
-# function kill(::ConditionTrigger, tk::LoopTask)
-#     rtk_info("$tk has been asked to stop")
-#     notify(tk, false) # notify task without calling user code
-# end
-
-# function kill(tk::LoopTask)
-#     @atomic tk.enabled = false
-#     if !isactive(tk)
-#         rtk_warn("$tk is not active")
-#     else
-#         kill(tk.trigger, tk)
-#     end
-#     yield() # maybe. let the task quit, messages print
-#     nothing
-# end
 
 function kill(tk::LoopTask)
     @atomic tk.enabled = false
     if !isactive(tk)
         rtk_warn("$tk is not active")
-    elseif tk.trigger isa ExternalTrigger
-        rtk_warn("$tk is waiting on an external condition to complete. ",
-            "It will not be rescheduled, but will remain active until ",
-            "the task encounters an error or the condition is met once again.")
-            # "consider implementing a LoopCondition to automate this behavior"
-    # elseif tk.condition isa CustomCondition
-        # kill!(tk.condition) # user defined custom behavior
     else
-        rtk_info("$tk has been asked to stop")
-        notify(tk, false) # notify task without calling user code
+        kill(tk.trigger, tk)
     end
     yield() # maybe. let the task quit, messages print
     nothing
 end
-
-# document these as default fallbacks - maybe have them print a warning if called?
-wait(trig::AbstractTrigger) = true
-notify(trig::AbstractTrigger, arg=true; kw...) = nothing
-
-
-wait(trig::ConditionTrigger) = @lock trig.cond wait(trig.cond)
-notify(trig::ConditionTrigger, arg=true; kw...) = @lock trig.cond notify(trig.cond, arg; kw...)
-# wait(trig::TimerTrigger) = sleep(0.001) #TODO: make this a bit more intelligent
-# notify(trig::TimerTrigger, arg=true; kw...) = nothing
-
-# notifying a task is really only used by the kill mechanisms
-# does nothing by default
-# ideally will unblock whatever the task is waiting on
-notify(tk::LoopTask, arg=true; kw...) = notify(tk.trigger, arg; kw...)
 
 # waiting on a task is dispatched by calling wait on the trigger
 function wait(tk::LoopTask)
@@ -167,6 +145,64 @@ function wait(tk::LoopTask)
         return false
     end
 end
+
+# notifying a task is really only used by the kill mechanisms
+# ideally will unblock whatever the task is waiting on
+function notify(tk::LoopTask, arg=true; kw...)
+    notify(tk.trigger, arg; kw...)
+end
+
+
+
+
+function kill(::ConditionTrigger, tk::LoopTask)
+    rtk_info("$tk has been asked to stop")
+    notify(tk, false) # notify task without calling user code
+end
+
+wait(trig::ConditionTrigger) = @lock trig.cond wait(trig.cond)
+notify(trig::ConditionTrigger, arg=true; kw...) = @lock trig.cond notify(trig.cond, arg; kw...)
+
+
+function kill(::ExternalTrigger, tk::LoopTask)
+    rtk_info("$tk is waiting on an external condition to complete. ",
+    "It will not be rescheduled once complete, but will remain active until ",
+    "the task encounters an error or the condition is met once again.")
+    # "consider implementing a LoopCondition to automate this behavior"
+end
+
+wait(trig::ExternalTrigger) = true
+notify(trig::ExternalTrigger, arg=true; kw...) = nothing
+
+# function kill(tk::LoopTask)
+#     @atomic tk.enabled = false
+#     if !isactive(tk)
+#         rtk_warn("$tk is not active")
+#     elseif tk.trigger isa ExternalTrigger
+#         rtk_warn("$tk is waiting on an external condition to complete. ",
+#             "It will not be rescheduled, but will remain active until ",
+#             "the task encounters an error or the condition is met once again.")
+#             # "consider implementing a LoopCondition to automate this behavior"
+#     # elseif tk.condition isa CustomCondition
+#         # kill!(tk.condition) # user defined custom behavior
+#     else
+#         rtk_info("$tk has been asked to stop")
+#         notify(tk, false) # notify task without calling user code
+#     end
+#     yield() # maybe. let the task quit, messages print
+#     nothing
+# end
+
+# document these as default fallbacks - maybe have them print a warning if called?
+wait(trig::AbstractTrigger) = true
+notify(trig::AbstractTrigger, arg=true; kw...) = nothing
+function kill(::T, tk::LoopTask) where {T<:AbstractTrigger}
+    rtk_warn("no kill method defined for type $T")
+end
+
+# wait(trig::TimerTrigger) = sleep(0.001) #TODO: make this a bit more intelligent
+# notify(trig::TimerTrigger, arg=true; kw...) = nothing
+
 
 
 

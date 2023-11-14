@@ -272,8 +272,8 @@ end
 # end
 
 @testset "making 100 tasks by loop" begin
-    x = Topic("x", 0)
-    y = [Topic("y$i", 0) for i in 1:100]
+    x = Topic(0; name="x")
+    y = [Topic(0; name="y$i") for i in 1:100]
     # tasks = [(@on x y[i][] = x[]) for i in 1:100]
     tasks = [(@on x yi[] = x[]) for yi in y]
     delay()
