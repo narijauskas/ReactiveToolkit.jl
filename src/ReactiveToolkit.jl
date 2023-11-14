@@ -45,6 +45,8 @@ include("loops.jl")
 export @loop
 export @on
 export @every
+export @once
+export @after
 export kill
 export echo
 #MAYBE: onall

@@ -7,6 +7,9 @@ If we want to set up a publisher to run periodically, and a subscriber to react 
 
 useful for robotics, hardware interaction, and controls.
 
+facilitates quickly writing high-performance glue code between custom hardware stacks and software.
+which is not crippled by the Python interpreter.
+
 ## Quickstart
 Install julia, and add this package. It's recommended to start julia with mulitiple threads: `julia -t auto`.
 

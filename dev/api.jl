@@ -19,6 +19,7 @@ x = Topic{Float64}("x", 1)
 
 # use a value
 x[] isa Int
+y = sin(x[])
 
 # set a value
 x[] = 2

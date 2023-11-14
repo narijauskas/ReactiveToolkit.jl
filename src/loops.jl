@@ -70,8 +70,37 @@ function _loop(name, trig, init_ex, loop_ex, final_ex)
     end
 end
 
-
-
+macro once(args...)
+    _once(args...)
+end
+_once(name, task) = _once(name, ExternalTrigger(), task)
+function _once(name, trig, task)
+    quote
+        local tk = ReactiveTask($(esc(name)), $trig) # partially initialized
+        tk.task = @spawn begin
+            try
+                rtk_info("$tk is starting")
+                # no initializer
+                while isenabled(tk)
+                    wait(tk) && begin
+                        @atomic tk.enabled = false
+                        $(esc(task)) # <- user defined task
+                    end
+                    yield()
+                end
+            catch e
+                rtk_err("$tk has failed")
+                rethrow(e)
+            finally
+                rtk_info("$tk has stopped")
+                # no finalizer
+            end
+        end
+        rtk_register(tk) # add to global task index
+        yield() # allows the new loop task to run immediately. solid maybe
+        tk # macro results in ReactiveTask object
+    end
+end
 # ------------------------------------ ConditionTrigger ------------------------------------ #
 
 mutable struct ConditionTrigger <: AbstractTrigger
@@ -162,5 +191,25 @@ function _every(dt, name, init, loop, final)
         # waitfor = WaitForTimer(Nano($(esc(dt))))
         trig = TimerTrigger(Nano($(esc(dt))))
         @loop $(esc(name)) trig $(esc(init)) $(esc(loop)) $(esc(final))
+    end
+end
+
+
+#------------------------------------ @after macro ------------------------------------#
+
+
+# @after seconds(5) println("hello")
+# @once waitfor task_ex
+
+macro after(args...)
+    _after(args...)
+end
+
+_after(dt, task_ex) = _after(dt, "@after $dt", task_ex)
+
+function _after(dt, name, task_ex)
+    return quote
+        trig = TimerTrigger(Nano($(esc(dt))))
+        @once $(esc(name)) trig $(esc(task_ex))
     end
 end
