@@ -8,6 +8,8 @@ This package provides tools to govern when code runs. What the code does is up t
 ## Overview
 Code is organized into tasks and topics. Tasks do stuff, topics allow data to be shared between them.
 
+
+
 ## Topics: @topic
 
 allowing values of type T to be safely and efficiently shared between parts of the system running on multiple threads.
@@ -181,10 +183,10 @@ There are many equivalent syntaxes:
 ```julia
 @topic x::Number = 0
 @topic y::Number = 0
-function loop()
+function do_stuff()
     y[] = sin(x[])
 end
-@on x loop()
+@on x do_stuff()
 @on x y[] = sin(x[])
 ```
 
@@ -198,39 +200,6 @@ end
 
 
 
-
-
-
-
-
-## Overview
-
-This is a simple framework for writing soft realtime code based on julia's system of task-based concurrency.
-
-It has 2 functional components:
-
-**Actions** are repeating tasks of the form:
-
-```julia
-on_start()
-axn = @repeat "name" on_loop() on_stop()
-```
-
-**Signals** are time-varying values that can be shared between them.
-```julia
-x = Signal(1) # Create a Signal{Int}
-x[] = 2 # set value (and notify)
-x[] # get value
-```
-
-
-## Example
-
-To print the value of x on each update:
-```julia
-x = Signal(0)
-@on x println(x[])
-```
 
 
 ## Example
@@ -250,25 +219,6 @@ yield()
 y[] # returns sin(1.0) after a slight delay
 ```
 
-## Other
-
-```julia
-
-axn = @repeat "say hello" begin
-    println("hello")
-    sleep(1)
-end
-```
-
-```julia
-@on x :(ex)
-
-@repeat "on x" begin
-    wait(x)
-    :(ex)
-end
-```
-
 **Signals** are time varying values that can be shared across tasks - the states of the robot
 
 
@@ -281,23 +231,6 @@ Soft realtime is the best we can do without an RTOS.
 Hard realtime is true (guaranteed) realtime.
 
 
-## Signals
-
-In order to communicate between
-
-```julia
-x = Signal(1) # Create a Signal{Int}
-x[] = 2 # set value (and notify)
-x[] # return value
-```
-
-Thread safe.
-
-
-```julia
-wait(x)
-notify(x)
-```
 
 ## Actions
 
@@ -363,70 +296,3 @@ end
 
 ```
 
-
-### Stopping Actions
-```julia
-stop!(axn)
-```
-
-If needed, can do
-```julia
-notify(x, 0; error=true)
-```
-
-### One-Shot Reactions
-For now:
-```julia
-x = Signal(0)
-@spawn begin
-    wait(x)
-    println(x)
-end
-```
-Maybe make a `@once` macro or function?
-
-### Global Overview
-Like a task manager of sorts.
-
-`ReactionList` type.
-
-```julia
-RTk.list # list of running tasks along with index #
-    # [1] map z on x,y - [active]
-    # [2] Reaction every 10Hz - [done]
-    # [3] NatNetClient - [failed]
-```
-
-```julia
-stop!(RTk.index[i]) # to stop task at index i
-stop!(RTk.index["name"]) # to stop all w./ matching name
-stop!(RTk.index...) # to stop all
-```
-
-```julia
-RTk.clean!() # to clean all done/failed
-```
-
-
-Plotting:
-```julia
-RTk.graph!(ax; kw...) # graph into any Makie backend, subfigure, etc.
-```
-
-### Internals
-```julia
-notify()
-wait()
-name!(axn, name::String)
-isactive(axn)
-RTk.daemon() # handles timing
-```
-
-## Operators
-
-* map/map!
-* foldp
-
-
-## Future
-Check out [Transducers.jl](https://github.com/JuliaFolds/Transducers.jl)

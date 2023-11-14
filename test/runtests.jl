@@ -23,6 +23,7 @@ end
     @testset verbose = true "Topic Objects"     include("test_topics.jl")
     @testset verbose = true "Tasks and Macros"  include("test_tasks.jl")
     @testset verbose = true "Compound Tests"    include("test_compound.jl")
+    println.(rtk_tasks())
 end
 
 #TODO: add more tests for the following:

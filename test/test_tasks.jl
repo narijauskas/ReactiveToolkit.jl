@@ -80,6 +80,8 @@ end
     tk0 = @every micros(100) x[] = x[] + 1
     start_stop(tk0) # let the machinery compile
 
+    delay()
+    delay()
     tk = @every micros(100) x[] = x[] + 1
     delay() # let the task start up
     @test isactive(tk)

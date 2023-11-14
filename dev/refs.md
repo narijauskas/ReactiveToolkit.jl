@@ -21,3 +21,8 @@ https://github.com/TsurHerman/Signals.jl/tree/master/src
 }
 
 [Concurrent FRP](https://elm-lang.org/assets/papers/concurrent-frp.pdf)
+
+
+
+## Future
+Check out [Transducers.jl](https://github.com/JuliaFolds/Transducers.jl)

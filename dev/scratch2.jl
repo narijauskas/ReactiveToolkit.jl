@@ -159,3 +159,26 @@ end
     end
 =#
 
+
+
+
+#------------------------------------ globals ------------------------------------#
+
+
+### Global Overview
+
+RTk.list # list of running tasks along with index #
+    # [1] map z on x,y - [active]
+    # [2] Reaction every 10Hz - [done]
+    # [3] NatNetClient - [failed]
+
+
+
+stop!(RTk.index[i]) # to stop task at index i
+stop!(RTk.index["name"]) # to stop all w./ matching name
+stop!(RTk.index...) # to stop all
+
+RTk.clean!() # to clean all done/failed
+RTk.graph!(ax; kw...) # graph into any Makie backend, subfigure, etc.
+
+

@@ -251,8 +251,3 @@ echo_x = echo(x)
 kill(echo_x)
 ```
 
-
-## Examples
-- arduino serial monitor
-- stissue
-- inverse pendulum?

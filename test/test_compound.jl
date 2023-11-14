@@ -35,7 +35,7 @@ end
     x = Topic(0; name="x")
     y = [Topic(0; name="y$i") for i in 1:100]
     # tasks = [(@on x y[i][] = x[]) for i in 1:100]
-    tasks = [(@on x yi[] = x[]) for yi in y]
+    tasks = [(@on x "x->$(yi.name)" yi[] = x[]) for yi in y]
     delay()
     delay()
 
@@ -62,4 +62,29 @@ end
     x[] = 5
     sleep(0.01)
     @test sum([yx[] == x[] for yx in y]) == 0
+end
+
+@testset "@after macro" begin
+
+    tk1 = @after seconds(1) begin
+        i = 0
+        task = @every millis(5) println("hello! i=$(i+=1)")
+        @after seconds(1) kill(task)
+    end
+    delay()
+    @test isactive(tk1)
+    sleep(2)
+    @test !isactive(tk1)
+    @test_throws UndefVarError i
+
+    @topic j = 0
+    tk2 = @after seconds(1) begin
+        task = @every millis(5) println("hello! j[]=$(j[]+=1)")
+        @after seconds(1) kill(task)
+    end
+    delay()
+    @test isactive(tk2)
+    sleep(2)
+    @test !isactive(tk2)
+    @test 200 == j[]
 end

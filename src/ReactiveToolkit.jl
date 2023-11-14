@@ -54,11 +54,11 @@ export echo
 # tk = @loop "uncomment to segfault julia" sleep(1)
 
 include("utils.jl")
-export rtk_init
+# export rtk_init
 export rtk_tasks
-export rtk_status
+# export rtk_status
 export rtk_print
-
+export rtk_clean
 
 # UDP multicast helpers for communication
 #TODO: remove UDP dependency for now

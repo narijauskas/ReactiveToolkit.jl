@@ -70,12 +70,17 @@ x[:] isa Vector{Int}
 
 # --------------------------- advanced example --------------------------- #
 
-@after seconds(5) begin
-    i = 1
-    task = @every seconds(1) println!("hello #$(i+=1)")
+@after seconds(3) begin
+    i = 0
+    task = @every millis(5) println("hello #$(i+=1)")
     @after seconds(8) kill(task)
 end
 
+@topic j = 0
+@after seconds(3) begin
+    task = @every millis(5) println("hello! #$(j[]+=1)")
+    @after seconds(3) kill(task)
+end
 
 
 # --------------------------- custom functionality --------------------------- #
