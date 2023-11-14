@@ -1,14 +1,10 @@
 module ReactiveToolkit
 
-
 using Crayons
-using Sockets # only for UDP
-using Sockets: InetAddr # only for UDP
-using Unitful # not strictly necessary, make Ext?
 using MacroTools: @capture
 using Base.Threads: Condition
 using Base.Threads: @spawn
-export @spawn # because I got tired of doing this every time
+export @spawn
 
 import Dates
 import Dates: canonicalize, Nanosecond
@@ -20,72 +16,56 @@ import Base: wait, notify
 import Base: setindex!, getindex
 import Base: kill
 import Base: isopen, open, close
-import Sockets: send, recv, recvfrom
 
-
-# export RTk
-
-# module RTk
-#     import ..INDEX
-#     # index = INDEX
-
-
-#     global PRINT_TO_REPL::Bool = true
-
-#     # print_local!(b::Bool = true) = (global PRINT_TO_REPL; PRINT_TO_REPL = b)
-
-#     function rtk_print(str...)
-#         if PRINT_TO_REPL
-#             println(repeat([""], 32)..., "\r", str...)
-#         end
-#     end
-    
-#     info(str...) = rtk_print(CR_INFO("rtk> "), str...)
-#     warn(str...) = rtk_print(CR_WARN("rtk:warn> "), str...)
-#     err(str...) = rtk_print(CR_ERR("rtk:error> "), str...)
-# end
-
-
-
-# using .RTk
+# only needd for UDP
+# using Sockets
+# using Sockets: InetAddr
+# import Sockets: send, recv, recvfrom
 
 # a representation of time
-include("nanos.jl")
-export now
+include("timing.jl")
+export now, ago
 export nanos, micros, millis, seconds # for now
-export ago
 # export Nano
 
+# sharing data between tasks
+include("topics.jl")
+export Topic
+export @topic
+
+# reactive task type
+include("tasks.jl")
+# export ReactiveTask
+export task_state
+export isactive
+# export debug
 
 # infinite while loops with extra steps
 include("loops.jl")
 export @loop
 export kill
-export task_state
 # tk = @loop "uncomment to segfault julia" sleep(1)
 
-# sharing data between tasks
-include("topics.jl")
-export Topic, UDPTopic
-export listen!
+include("on.jl")
 export echo
 export @on
-export @topic
-export _topic #temporary
 #MAYBE: onall
 
+include("every.jl")
+export @every
+#FUTURE: @in, @after
 
 # UDP multicast helpers for communication
-include("udp.jl")
-export UDPMulticast
-export send, recv
-
+#TODO: remove UDP dependency for now
+# include("udp.jl")
+# export UDPMulticast
+# export send, recv
+# export UDPTopic
+# export listen!
 
 # include("timing.jl")
 # include("daemon.jl")
-include("timers.jl")
-export @every
-#FUTURE: @in, @after
+
 
 
 include("utils.jl")

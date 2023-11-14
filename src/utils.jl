@@ -1,7 +1,7 @@
-global const LOOP_INDEX = LoopTask[]
-global const LOOP_LOCK = ReentrantLock()
+global const TASK_INDEX = LoopTask[]
+global const TASK_LOCK = ReentrantLock()
 global PRINT_TO_REPL::Bool = true
-global const STATUS = UDPMulticast(ip"230.8.6.7", 5309)
+# global const STATUS = UDPMulticast(ip"230.8.6.7", 5309)
 
 
 CR_GRAY = crayon"dark_gray"
@@ -12,51 +12,49 @@ CR_WARN = crayon"bold"*crayon"yellow"
 CR_ERR  = crayon"bold"*crayon"red"
 
 
-
 function rtk_print(str...)
-    global PRINT_TO_REPL
-    if PRINT_TO_REPL
-        println(repeat([""], 32)..., "\r", str...)
-    end
-    isopen(STATUS) && send(STATUS, string(str...))
+    PRINT_TO_REPL && println(repeat([""], 32)..., "\r", str...)
+    # isopen(STATUS) && send(STATUS, string(str...))
 end
 
 
-rtk_info(str...) = rtk_print(CR_INFO("rtk> "), str...)
-rtk_warn(str...) = rtk_print(CR_WARN("rtk:warn> "), str...)
-rtk_err(str...) = rtk_print(CR_ERR("rtk:error> "), str...)
+rtk_info(str...) = rtk_print(CR_INFO("rtk> "),       str...)
+rtk_warn(str...) = rtk_print(CR_INFO("rtk:warn> "),  str...)
+rtk_err(str...)  = rtk_print(CR_INFO("rtk:error> "), str...)
 
 
 function rtk_register(tk::LoopTask)
-    global LOOP_LOCK
-    global LOOP_INDEX
-    lock(LOOP_LOCK) do
-        push!(LOOP_INDEX, tk)
-    end
+    @lock TASK_LOCK push!(TASK_INDEX, tk)
     nothing
+    # global TASK_LOCK
+    # global TASK_INDEX
+    # lock(TASK_LOCK) do
+    #     push!(TASK_INDEX, tk)
+    # end
+    # nothing
 end
 
-rtk_tasks() = return LOOP_INDEX
-rtk_status() = return STATUS
+rtk_tasks() = @lock TASK_LOCK return TASK_INDEX
+rtk_kill_all() = @lock TASK_LOCK foreach(kill, TASK_INDEX)
+rtk_n_active() = @lock TASK_LOCK sum(isactive.(TASK_INDEX))
+rtk_clean() = @lock TASK_LOCK filter!(isactive, TASK_INDEX)
+# rtk_status() = return STATUS
 # rtk_topics()
 
-function rtk_init(; print_to_repl = true)
-    global PRINT_TO_REPL = print_to_repl
-    global STATUS
-    open(STATUS)
-    rtk_info("Starting ReactiveToolkit.jl")
-    # ip address
-    # number of threads
-    # hostname
-    # julia version
-    # OS
-    # processID
-    isopen(STATUS)
-end
+# function rtk_init(; print_to_repl = true)
+#     global PRINT_TO_REPL = print_to_repl
+#     global STATUS
+#     open(STATUS)
+#     rtk_info("Starting ReactiveToolkit.jl")
+#     # ip address
+#     # number of threads
+#     # hostname
+#     # julia version
+#     # OS
+#     # processID
+#     isopen(STATUS)
+# end
 
-
-# rtk_kill_all() = foreach(kill, LOOP_INDEX)
-# rtk_n_active() = sum(isactive.(LOOP_INDEX))
 
 
 
