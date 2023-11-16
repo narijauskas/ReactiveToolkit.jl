@@ -33,3 +33,45 @@ x = Topic{Float64}(0; size=1000)
 lineplot(buf[:])
 
 # getindex(::Topic, ::Colon)
+
+# <iframe width="560" height="315" src="https://www.youtube.com/embed/VIDEO_ID?start=72&end=76" frameborder="0" allowfullscreen></iframe>
+
+
+# make topics
+@topic x = 0
+@topic y::Number = 0
+
+# use/update values with []
+y[] = sin(x[])
+
+# react to changes
+@on x y[] = sin(x[])
+
+@on y begin
+    println("initializer")
+end begin
+    println("y is now $(y[])")
+end begin
+    println("finalizer")
+end
+
+# react to time
+@every millis(50) x[] += 1
+
+# set a value
+x[] = 2
+
+# dump the buffer
+x[:] isa Vector{Int}
+
+
+@spawn begin
+    println("hello from thread $(Threads.threadid())")
+    yield()
+    println("hello from thread $(Threads.threadid())")
+    yield()
+    println("hello from thread $(Threads.threadid())")
+    yield()
+    println("hello from thread $(Threads.threadid())")
+    yield()
+end

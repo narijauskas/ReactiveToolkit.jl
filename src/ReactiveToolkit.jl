@@ -25,7 +25,8 @@ import Base: isopen, open, close
 include("timing.jl")
 export now, ago
 export nanos, micros, millis, seconds # for now
-export microsleep, yieldsleep, flexsleep
+export Hz, kHz, MHz # for now
+export microsleep, yieldsleep, autosleep
 # export Nano
 
 # sharing data between tasks

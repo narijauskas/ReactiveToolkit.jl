@@ -1,298 +1,204 @@
 # ReactiveToolkit.jl
 
-Think of it as an asyncrhonous, reactive, realtime Simulink.
-Simulink, but for scalable, open-source, high-performance hardware I/O.
+## What is it?
 
-This package provides tools to govern when code runs. What the code does is up to you.
+Hello! This package provides some tools to enable asynchronous, concurrent, reactive, "soft real-time" programming in Julia.
 
-## Overview
-Code is organized into tasks and topics. Tasks do stuff, topics allow data to be shared between them.
+The target audience of this package consists of
+roboticists working at the intersection of controls theory and experimental hardware.
+It is meant for single developers
+or small teams
+who are not willing or able to implement a full real-time stack just to test their novel control laws on benchtop hardware.
+
+To do so,
+It sacrifices robustness and safety for flexibility and ease of use.
+Some of the most significant disclaimers are discussed in a section below.
+
+For a more detailed discussion of the limitations of this package, please see [here](@ref Disclaimers).
+
+
+That being said,
+
+!!! warning "ReactiveToolkit.jl is not suitable for mission- or safety-critical applications."
+    In other words, don't use this for your missile. But it may prove useful for your PhD.
+
+extend the task-based concurrency system of julia to facilitate
+writing in a reactive paradigm
+
+**reactive programing**
+
+is a way of creating event-driven programs in terms of time-varing data streams.
 
 
 
-## Topics: @topic
+It should be useful for robotics, hardware interaction, and controls.
 
-allowing values of type T to be safely and efficiently shared between parts of the system running on multiple threads.
+It is built on julia's metaprogramming and task-based concurrency features.
+
+It provides one type to share information, and several macros to transform arbitrary code into a network of asynchronous, reactive tasks.
+
+It adds one type to represent data streams of arbitrary types.
+`Topic{T}` represents a time-varying state of type `T`.
+
+## References
+
+ReactiveToolkit.jl draws inspiration from
+[Observables.jl](https://github.com/JuliaGizmos/Observables.jl),
+the internals of [Makie.jl](https://docs.makie.org/stable/),
+task management and data marshalling frameworks for robotics such as
+[LCM](http://lcm-proj.github.io/lcm/) and
+[ROS](https://www.ros.org/),
+block diagram representations of signals and transfer functions from control theory,
+notions of functional reactive programming
+[[1]](http://people.seas.harvard.edu/~chong/abstracts/CzaplickiC13.html)
+[[2]](https://elm-lang.org/assets/papers/concurrent-frp.pdf)
+including the design of the
+[Elm](https://elm-lang.org/) programming language,
+and other julia packages for reactive programming such as
+[Reactive.jl](https://github.com/JuliaGizmos/Reactive.jl),
+[ReactiveBasics.jl](https://github.com/tshort/ReactiveBasics.jl),
+[Rocket.jl](https://github.com/biaslab/Rocket.jl), and
+[Signals.jl](https://github.com/TsurHerman/Signals.jl),
+as well as the task-based concurrency system of Julia itself.
+
+
+
+## Topics
+
+## Reactive Tasks
+Reactive tasks can be created with one of several macros, namely `@on` and `@every`, provided by ReactiveToolkit.
+
+These macros transform arbitrary source code into an asynchronous task with some added control flow and error handling machinery which will run in reaction to topic updates, time, or arbitrary events. These macros create `ReactiveTask` types, which holds some control flow variables along with the created `Task`.
+
+
+## How is it used?
+
+Time-varying states are represented by the `Topic{T}` type. A topic is a thread-safe container holding values of type `T`. In the example above, `x` is a `Topic{Int}`. Their value can be accessed or updated using `[]`.
+
+
+Topics are implemented essentially as a circular buffer
+holding values of type `T`
+with mutual exclusion enforced on writes which
+allows unlimited concurrent reads of the most recently-written value.
+This most recent value is considered to be the most valid representation of that state.
+
 
 
 ```julia
-@topic x = 10
-@topic x::Int = 10
+# making topics
+@topic x = 0
+@topic y::Number = 0
+
+# using topics
+y[] = sin(x[])
 ```
-`@topic` is a macro ultimately creates an object of type `Topic{T}`.
+<!-- in control flow, error handling, and threading code -->
+Reactive tasks can be created with one of several macros, namely `@on` and `@every`, provided by ReactiveToolkit.
 
-A topic is a threadsafe container holding values of type T. In the example above, `x` is a `Topic{Int}`.
+@macro [trigger] "name" init_ex loop_ex final_ex
 
-Note that `x` represents the container itself. We need a bit of extra syntax to access the value inside, which looks like this:
-```julia
-x[] = 1 # set the value of x
-sin(x[]) # use the value of x
-```
-
-
-
-T can be anything you can represent in julia: primitive types like `UInt16`, abstract types like `Number`, dicts or structs encoding custom message types, variable length arrays, images, simulation models, symbolic differential equations, or even julia source code. It can also be of type `Any`.
+These macros transform arbitrary source code into an asynchronous task with some added control flow and error handling machinery which will run in reaction to topic updates, time, or arbitrary events.
 
 ```julia
-@topic x = Trajectory{}
-```
-```julia
-@topic x::Int = 10.0 # x holds Int64s, with initial value of 10
-@topic y::Number = 10.0 # y holds Numbers, initially the Float64 10.0
-@topic z::Number = 10 # 
-@topic a::Any = 10.0
+# react to topics
+@on x y[] = sin(x[])
 
-a[] = plot(rand(10))
-```
-
-### Custom Message Types
-```julia
-struct RobotStatus
-    battery_level::Float64
-    is_ok::Bool
+# react to time
+tk = @every millis(50) begin
+    x[] = sin(2π*now()*1e-9)
 end
 
-@topic status = RobotStatus(100, true)
+# one-shot version of @every
+@after seconds(3) kill(tk)
 ```
 
-For more flexible messages:
+The `@loop` macro generalizes `@on` and `@every` to arbitrary events. It is useful for interacting with hardware, or other external processes. For example, here is an Arduino-style serial monitor which can be defined directly in the REPL:
+
 ```julia
-@topic status = Dict("battery_level"=>100, "is_ok"=>true)
-```
+using ReactiveToolkit, LibSerialPort
 
+function SerialMonitor(addr)
+    # objects can be captured by the task
+    # but kept out of global scope
+    port = SerialPort(addr)
 
-<!-- todo: "exotic" example: maybe unicodeplots? images? -->
-
-If we lean into the abstraction, we can do things like this:
-```julia
-using ReactiveToolkit
-using CairoMakie
-
-@topic fig = Figure()
-
-let i = 1
-    @on fig "autosave" begin
-        save("./data/figure_$i.png", fig[])
-        i+=1
+    @loop "$addr serial monitor" begin
+        # initializer
+        !isopen(port) && open(port)
+    end begin
+        # loop task
+        println(readline(port))
+    end begin
+        # finalizer
+        isopen(port) && close(port)
     end
 end
 
-@on data "autoplot" begin
-    fig[] = lines(data[])
+tk = SerialMonitor("/dev/ttyACM0")
+kill(tk)
+# etc.
+```
+This example shows the expanded syntax for including an optional initializer and finalizer in addition to the main loop expression. The loop task expression must inlcude a blocking call to work properly. In the example above, the task waits on `readline(port)` - thus, it will run whenever a new packet arrives. For contrast, here is a more manual implementation:
+
+```julia
+using ReactiveToolkit, LibSerialPort
+
+port = SerialPort("/dev/ttyACM0")
+open(port)
+tk = @loop "serial monitor" println(readline(port))
+
+kill(tk)
+close(port)
+```
+It is often useful to start with the manual version and build up to re-usable constructors as needed. Note that most older microcontrollers (which use a UART-based FTDI chip to implement USB communication) will also need a baud rate set as the second argument to the SerialPort constructor.
+
+## What can it do?
+
+For a demo, please see the shameless plug of my research below. The hardware in this video is the result of our group's research on the development of intelligent soft robotic materials with integrated sensing, actuation, and control.
+The high-level software for this system was written almost entirely in an early development version of ReactiveToolkit, which was responsible for both real-time closed loop control (200-600Hz), and data logging at 1kHz. Depending on the mode of operation, this meant simultaneously tracking over 1000 independent states. 
+
+```@raw html
+<iframe style="width:640px;height:360px" src="https://www.youtube.com/embed/osM1R1PnR2U?rel=0" title="Shape-shifting display for 3D designs" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+```
+
+Running on a modern, but modest PC (Ryzen 7 5800X, 32GB RAM), the software stack handled:
+ * management of bidirectional data streams to 20 microcontrollers at 1kHz each
+ * processing 3D point clouds streamed from a motion capture videography system at 240Hz
+ * real-time 3D surface fitting and plotting on a 60Hz monitor using GLMakie.jl
+ * recording, storage, and processing of ~1 million data points per second at full send
+
+From a UX/DX perspective, the ability to download dependencies; write, compile, and execute additional robot code at runtime; all with the full OS-agnostic expressiveness and ecosystem of julia at your fingerprints, is... pretty nice, to say the least. Using ReactiveToolkit, many of the demos shown in the video could be written in under a few hours. For example, to generate the radial ripple shown at 0:08:
+```julia
+ripple = @every Hz(200) begin
+    VREF[] = [sin(t) for x in 1:10, y in 1:10]
 end
 
-# now we can automatically plot and save data simply by storing it:
-data[] = rand(10)
-
+# whenever we're done
+kill(ripple)
 ```
+This code can be entered directly in the REPL, compiled, and executed while the hardware continues to run. No need to restart hardware, or recompile the full stack!
 
+## What's the catch?
+## Limitations
 
-## Tasks
+The target audience of this package is
+roboticists working at the intersection of controls theory and experimental hardware.
 
-Think of tasks as zero-argument functions (or blocks of code) that can be interrupted and scheduled across CPU cores.
+It is meant for single developers
+or small teams
+who are not willing or able to implement a full real-time stack just to test their novel control laws on benchtop hardware.
 
-<!-- loop() function example? -->
+To do so,
+It sacrifices robustness and safety for flexibility and ease of use.
+Some of the most significant disclaimers are discussed in a section below.
+That being said,
 
-## Reacting to Changes: @on
+!!! warning "ReactiveToolkit.jl is not suitable for mission- or safety-critical applications."
+    In other words, don't use this for your missile. But it may prove useful for your PhD.
 
-General syntax:
-```julia
-@on "name" topic loop() finalizer()
-```
-where name and finalizer are optional.
+ReactiveToolkit is based on unreliable communication.
 
-`name` should be a string and is optional
-`topic` should be a Topic{T}
-`loop()` should be an *expression* describing the loop task
-`finalizer()` should be an expression descring the finalizer task, and is optional
-
-
-```julia
-@on x println(x[])
-@on "name" topic loop() finalizer()
-```
-
-
-
-
-
-## Timing: @at
-
-```julia
-@topic led_cmd=false
-toggle_led() = led_cmd[] = !led_cmd[]
-@at Hz(10) toggle_led()
-@on led_cmd write(mcu, "SET LED $led_cmd")
-```
-
-
-## Manual Mode: @loop
-This construct exposes the mechanisms for scheduling to the user.
-It is particularly useful for eternal interfaces.
-`@loop` might be renamed to `@always`
-In addition to topics, is the other 'base' primitive of this package. `@on` and `@at` are just wrappers for it.
-
-Think of your code as going inside of a `while true` loop. You are responsible for throttling how fast it runs which resources it blocks.
-
-<!-- TCPIP example? -->
-<!-- Serial example -->
-
-```julia
-@loop "serial monitor" begin
-    x[] = parse(UInt16, readline(port))
-end begin # finalizer (optional)
-    isopen(port) && close(port)
-end
-```
-In the example above, the task waits on `readline(port)`.
-
-Sometimes, we want to ensure a task runs on the 'main' thread. Especially for packages which are not multithreaded, like making plots with `GLMakie`.
-```julia
-@looplocal "realtime plot" begin
-    wait(x)
-    plot!(ax, x[])
-end
-```
-The code above is functionally identical to:
-```julia
-@on x plot!(ax, x[])
-```
-except it will not jump between multiple threads.
-
-
-## Reacting to Groups: On Any/On All
-
-To run a task in response to a change in any element x1,x2,x3
-
-```julia
-@onany (x1,x2,x3) anytask()
-@onall (x1,x2,x3) alltask()
-```
-
-
-
-
-
-
-
-
-## Note on Metaprogramming
-Macros see inputs as *expressions* that is to say source code as source code.
-There are many equivalent syntaxes:
-
-```julia
-@topic x::Number = 0
-@topic y::Number = 0
-function do_stuff()
-    y[] = sin(x[])
-end
-@on x do_stuff()
-@on x y[] = sin(x[])
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-## Example
-
-```julia
-x = Signal(0.0)
-y = Signal(0.0)
-@on x begin
-    y[] = sin(x[])
-end
-```
-
-Now, whenever the value of `x` is changed, `y` will be set to `sin(x)` after a slight delay.
-```julia
-x[] = 1.0
-yield()
-y[] # returns sin(1.0) after a slight delay
-```
-
-**Signals** are time varying values that can be shared across tasks - the states of the robot
-
-
-
-### Soft Realtime
-An RTOS strictly bounds the time a task can run.
-Regular OS distributes processing resources to tasks as they become available.
-
-Soft realtime is the best we can do without an RTOS.
-Hard realtime is true (guaranteed) realtime.
-
-
-
-## Actions
-
-Think of tasks as zero-argument functions (or blocks of code) that can be interrupted and scheduled across CPU cores.
-
-An action is a set of 3 'tasks':
-
-```julia
-on_start()
-axn = @repeat "name" on_loop() on_stop()
-```
-
-| main thread | axn thread |
-| --- | --- |
-| `setup_ex` |  |
-| `axn = ...` | `main_ex` |
-| | `main_ex` |
-| | `main_ex` |
-| `stop!(axn)` | `main_ex` |
-| | `final_ex` |
-
-All: `while(isactive(axn))`
-
-Base primitive:
-
-```julia
-axn = @repeat "name" begin
-    # custom wait, eg. recv(socket)
-    # ...
-end
-```
-
-These generate a `wait()` condition:
-
-```julia
-axn = @on(xs...) do
-    #...
-end
-
-@on x println("hello")
-@on y fxn(a, b, c)
-```
-
-```julia
-@on all(xs...) begin
-    # ...
-end
-
-@on any(xs...) begin
-    # ...
-end
-```
-
-```julia
-axn = @every(hz) do
-    #...
-end
-
-@at Hz(1) println("hello")
-@at Hz(1) "printer" begin
-    println("hello")
-end
-
-```
-
+ReactiveToolkit enables "soft real-time" programming in julia. **Soft real-time is *NOT* real-time.**
+Real-time systems make guarantees about the timing of their operations.
+Soft real-time is the idea that if code runs fast enough, the result is practically the same. Consequently ReactiveToolkit will work well until it can't keep up, and makes **none** of the guarantees typically expected of real-time systems. Everything still runs on top of a shared-time OS.
+## Disclaimers

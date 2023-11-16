@@ -162,7 +162,7 @@ TimerTrigger(dt::Nano) = TimerTrigger(dt, now()+dt, true)
 function wait(trig::TimerTrigger)
     # add isenabled(trig) to while?
     while isenabled(trig) &&  now() < trig.t_next
-        flexsleep(trig.t_next - now())
+        autosleep(trig.t_next - now())
     end
     @atomic trig.t_next += trig.dt
     return true

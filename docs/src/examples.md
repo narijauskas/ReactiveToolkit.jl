@@ -1,4 +1,5 @@
 # Examples and Design Patterns
+These are fairly minimal toy examples. Many of them may not be a good idea, or lead to something that is a bad idea. Please treat them as food for thought.
 
 ## Topics vs Captured Variables
 
@@ -65,18 +66,28 @@ a[] = plot(rand(10))
 
 
 ## Custom Message Types
+Since topics can hold any julia type, messages can be defined by whatever type we want. This includes custom structs:
 ```julia
 struct RobotStatus
     battery_level::Float64
     is_ok::Bool
 end
-
 @topic status = RobotStatus(100, true)
 ```
 
-For more flexible messages:
+existing data structures and container types:
 ```julia
+@topic status = (100, true)
 @topic status = Dict("battery_level"=>100, "is_ok"=>true)
+@topic status = (battery_level=100, is_ok=true)
+@topic status = "BATT:100,ISOK:1"
+```
+
+or *literally* anything:
+```julia
+@topic status::Any = (100, true)
+status[] = Dict("battery_level"=>100, "is_ok"=>true)
+status[] = "I hope this doesn't break anything"
 ```
 
 
@@ -86,13 +97,13 @@ If we lean into the abstraction, we can do things like this:
 using ReactiveToolkit
 using CairoMakie
 
+@topic idx = 1
 @topic fig = Figure()
+@topic data = Vector{Float64}[]
 
-let i = 1
-    @on fig "autosave" begin
-        save("./plots/figure_$i.png", fig[])
-        i+=1
-    end
+@on fig "autosave" begin
+    save("./plots/figure_$(idx[]).png", fig[])
+    idx[] += 1
 end
 
 @on data "autoplot" begin
@@ -101,5 +112,4 @@ end
 
 # now we can automatically plot and save data simply by storing it:
 data[] = rand(10)
-
 ```

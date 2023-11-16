@@ -15,6 +15,9 @@ micros(x)   = Nano(1e3x)
 millis(x)   = Nano(1e6x)
 seconds(x)  = Nano(1e9x)
 
+Hz(x)  = Nano(1e9/x)
+kHz(x) = Nano(1e6/x)
+MHz(x) = Nano(1e3/x)
 
 show(io::IO, t::Nano) = print(io, "Nano $(t.ns)")
 
@@ -71,9 +74,12 @@ function busywait(t::Nano)
     end
 end
 
+#=
+Block the current task for a specified duration, automatically cycling thru several sleep functions to balance accuracy and efficiency.
+=#
 # choose the best sleep function for the given interval
 # probably needs a bit of tuning
-function flexsleep(t::Nano)
+function autosleep(t::Nano)
     t > millis(10) ? sleep(t - millis(1)) :
     t > micros(10) ? microsleep(t - micros(1)) :
     t > nanos(10)  ? yieldsleep(t - nanos(1)) :

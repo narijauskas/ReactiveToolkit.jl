@@ -7,6 +7,7 @@ makedocs(
     authors = "Mantas Naris",
     pages = Any[
         "Home" => "index.md",
+        "Manual" => "manual.md",
         "Examples" => "examples.md",
         ],
     doctest=false,
