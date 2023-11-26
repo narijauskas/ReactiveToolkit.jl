@@ -1,5 +1,5 @@
 # Examples and Design Patterns
-These are fairly minimal toy examples. Many of them may not be a good idea, or lead to something that is a bad idea. Please treat them as food for thought.
+These are fairly minimal toy examples. Many of them may not be a good idea, or lead to something that is a bad idea. For now, please treat them as food for thought.
 
 ## Topics vs Captured Variables
 
@@ -23,46 +23,14 @@ end
 # j[] is 600
 ```
 
+## Timing
+Windows 11 22H2:
+![timing](./assets/sleep_windows.png)
+ReactiveToolkit.jl:
+![timing](./assets/sleep_rtk.png)
 
 ## Topic/Task Generators
-Sometimes we want lots of tasks that are almost identical, but with different parameters. Why not use a loop to build them?
-
-
-
-## Topics: @topic
-
-allowing values of type T to be safely and efficiently shared between parts of the system running on multiple threads.
-
-
-```julia
-@topic x = 10
-@topic x::Int = 10
-```
-`@topic` is a macro ultimately creates an object of type `Topic{T}`.
-
-A topic is a threadsafe container holding values of type T. In the example above, `x` is a `Topic{Int}`.
-
-Note that `x` represents the container itself. We need a bit of extra syntax to access the value inside, which looks like this:
-```julia
-x[] = 1 # set the value of x
-sin(x[]) # use the value of x
-```
-
-
-
-T can be anything you can represent in julia: primitive types like `UInt16`, abstract types like `Number`, dicts or structs encoding custom message types, variable length arrays, images, simulation models, symbolic differential equations, or even julia source code. It can also be of type `Any`.
-
-```julia
-@topic x = Trajectory{}
-```
-```julia
-@topic x::Int = 10.0 # x holds Int64s, with initial value of 10
-@topic y::Number = 10.0 # y holds Numbers, initially the Float64 10.0
-@topic z::Number = 10 # 
-@topic a::Any = 10.0
-
-a[] = plot(rand(10))
-```
+Sometimes we want lots of tasks that are almost identical, but with different parameters. Why not use a loop to build them? (see tests_compound.jl)
 
 
 ## Custom Message Types
@@ -89,7 +57,7 @@ or *literally* anything:
 status[] = Dict("battery_level"=>100, "is_ok"=>true)
 status[] = "I hope this doesn't break anything"
 ```
-
+You may see why this isn't necessarily a good idea. But it's possible!
 
 ## Automatic Plotting
 If we lean into the abstraction, we can do things like this:
