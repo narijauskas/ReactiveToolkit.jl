@@ -75,7 +75,7 @@ It expects one of the general forms:
  * `final_ex` is an expression to run once on task destruction
 
 
-## Representing Time
+## Time
 
 ReactiveToolkit uses the `Nano` type for its internal representation of time, which corresponds to the system clock in nanoseconds as a `UInt64`. This design choice was made to differentiate ReactiveToolkit's representation of time from the various notions of time provided by other packages, and maintain compatibility between them by requiring explicit conversions to `Nano`s.
 
@@ -198,3 +198,16 @@ kill(tk)
 close(port)
 ```
 It is often useful to start with the manual version and build up to re-usable constructors as needed. Note that many older microcontrollers (which use a UART-based FTDI chip to implement USB communication) will also need a baud rate set as the second argument to the SerialPort constructor.
+
+
+## Killing Tasks
+Tasks are stopped using `kill(task)`:
+```julia
+tk = @every seconds(0.5) println("...is this annoying yet?")
+# wait for it to get annoying
+kill(tk)
+```
+
+If we forget to bind the task to a variable name (this happens often), it can be found and killed using `rtk_tasks()`.
+
+Note that kill only *requests* that the task stop. The task will continue to wait on its blocking call. If the task is waiting on an external event, it will continue to show as `active` until that event occurs. I intend to rework the task killing mechanisms to be more robust, transparent, and extensible in the future.

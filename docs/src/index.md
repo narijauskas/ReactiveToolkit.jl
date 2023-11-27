@@ -39,9 +39,20 @@ This means we already have a bunch of topics defined,
 and have started low-level tasks (eg. hardware drivers, controllers, filters, etc.)
 =#
 
-ripple = @every Hz(200) begin
-    VREF[] = [sin(t) for x in 1:10, y in 1:10]
+@topic kt = 30.0 # rate tuning parameter
+@topic kxy = 1.0 # spatial tuning parameter
+
+radial_ripple = @every Hz(200) "reference" begin
+    M = 8000 # magnitude (volts)
+    xs = LinRange(-10, 10, 10)
+    ys = LinRange(-10, 10, 10)
+    t = now()*1e-9 # current time in seconds
+    VREF[] = [M*(sin(kxy[]*sqrt(x^2 + y^2) - kt[]*t)+1)/2 for x in xs, y in ys]
 end
+
+# to adjust the shape of the ripple, eg:
+kt[] = 60
+kxy[] = 2
 
 # once we're done filming the demo,
 kill(ripple)
@@ -68,13 +79,14 @@ The reality of Julia is that it has two features which are almost never found in
 
 The time-to-first-plot problem has not gone away: if your code encounters a new branch, it will take time to compile. This could cause problems, eg. if your drone encounters an obstacle and needs to spend valuable time compiling the obstacle avoidance code.
 
-As of 1.9, julia's garbage collector is not concurrent, and will pause all tasks while it runs. When this occurs is entirely unpredictable, and will take an unbounded amount of time to run. Workarounds are to write code that minimize allocations (avoiding them entirely is all but impossible in multi-threaded code) or to pause the GC during critical sections. 
+As of 1.9, julia's garbage collector is not concurrent, and will pause all tasks while it runs. When this occurs is entirely unpredictable, and will take an unbounded amount of time to run. Workarounds are to write code that minimize allocations (avoiding them entirely is all but impossible in multi-threaded code) or to pause the GC during critical sections.
 ```julia
 GC.enable(false)
 # https://downloadmoreram.com/
 GC.enable(true)
 ```
-A *much* better solution will come in the form of a task-local/concurrent garbage collector which to my understanding is actively being developed.
+Keep an eye on RAM usage in your OS resource monitor - if it reaches 100%, julia *will* crash. Depending on your code and hardware, this can happen in seconds or in days. A *much* better solution will come in the form of a task-local/concurrent garbage collector which to my understanding is actively being developed as julia evolves for a multi-threaded world.
+
 
 #### 4. Multi-Threaded, Not Multi-Process
 It is a common pradigm in robotics to modularize the system into multiple processes with independent memory, which provides robustness against crashes in any part of the system. ReactiveToolkit does not do this (yet), instead, everything runs within one instance of julia and uses a shared memory pool. If you segfault one task, you segfault your entire system. Corollary: you will likely find a way to segfault something.
@@ -93,7 +105,7 @@ robotics frameworks such as
 [LCM](http://lcm-proj.github.io/lcm/),
 [YARP](https://www.yarp.it/),
 [ROS](https://www.ros.org/),
-block diagram representations of signals and transfer functions from control theory,
+block diagram representations of signals and transfer functions from control theory (think [Simulink](https://www.mathworks.com/products/simulink.html)),
 notions of functional reactive programming
 [[1]](http://people.seas.harvard.edu/~chong/abstracts/CzaplickiC13.html)
 [[2]](https://elm-lang.org/assets/papers/concurrent-frp.pdf)
@@ -104,17 +116,5 @@ and other julia packages for reactive programming such as
 [ReactiveBasics.jl](https://github.com/tshort/ReactiveBasics.jl),
 [Rocket.jl](https://github.com/biaslab/Rocket.jl), and
 [Signals.jl](https://github.com/TsurHerman/Signals.jl),
-the task-based concurrency system of Julia itself,
+the [composable task-based concurrency](https://julialang.org/blog/2019/07/multithreading/) system of Julia itself,
 and a splash of practical experience.
-
-
-## Future
-Universal serialization/marshalling of topics.
-A cpp implementation of the serializer, to facilitate communication with microcontrollers.
-
-UDP communication/UDPTopic.
-This would allow inter-process and inter-device communication.
-I have been playing with some prototypes, but they were not implemented as the default because:
-1. UDP is not nearly as fast as shared memory
-2. UDP requires a good serialization/deserialization scheme
-3. Julia's UDP stack relies on calls to lib_uv, which I believe are serialized

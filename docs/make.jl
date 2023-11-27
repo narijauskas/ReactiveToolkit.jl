@@ -8,7 +8,7 @@ makedocs(
     pages = Any[
         "Home" => "index.md",
         "Manual" => "manual.md",
-        "Examples" => "examples.md",
+        "Extras" => "extras.md",
         ],
     doctest=false,
     clean=true,
