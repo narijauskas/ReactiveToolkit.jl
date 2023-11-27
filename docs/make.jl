@@ -14,11 +14,7 @@ makedocs(
     clean=true,
 )
 
-# deploydocs(
-#     repo = "github.com/SRTxDojo/SRTxDocs",
-#     devbranch = "main"
-# )
-
-# using LiveServer
-
-# servedocs(; foldername = ".");
+deploydocs(
+    repo = "github.com/narijauskas/ReactiveToolkit.jl.git",
+    push_preview = true,
+)
