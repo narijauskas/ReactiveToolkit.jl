@@ -1,10 +1,12 @@
+[![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/badges/StandWithUkraine.svg)](https://stand-with-ukraine.pp.ua)
+[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://narijauskas.github.io/ReactiveToolkit.jl/dev)
 # ReactiveToolkit.jl
-
-**ReactiveToolkit.jl is not suitable for mission- or safety-critical applications.**
 
 Hello! This package provides some tools to enable asynchronous, concurrent, reactive, "soft real-time" programming in Julia. The target audience of this package consists of roboticists working at the intersection of controls theory and experimental hardware. It should prove useful for single developers or small teams who are not willing or able to implement a full real-time stack just to test their control implementation on benchtop hardware.
 
-For more information, please see the documentation!
+**ReactiveToolkit.jl is not suitable for mission- or safety-critical applications.**
+
+For more information, please see the [documentation](https://narijauskas.github.io/ReactiveToolkit.jl/dev)!
 
 ## Crash Course
 
