@@ -1,20 +1,22 @@
 name = "ReactiveToolkit"
 uuid = "5352d3c8-010c-4f6e-a427-fe5152755be6"
-authors = ["mantas <mantas@case.edu>"]
-version = "0.1.0"
+authors = ["mantas <mantas.naris@colorado.edu>"]
+version = "0.1.0-dev"
 
 [deps]
 Crayons = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
-DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
-Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
 
 [compat]
 julia = "1.7"
+Crayons = "4"
+MacroTools = "0.5"
 
 [extras]
-BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
-SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
+# BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "SafeTestsets", "BenchmarkTools"]
+test = ["Test"]
+# test = ["Test", "BenchmarkTools"]
